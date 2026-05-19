@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Text, View, TouchableOpacity, ScrollView, StyleSheet, Alert, StatusBar, Platform, NativeModules, Modal, TextInput, ActivityIndicator } from 'react-native';
+import { Text, View, TouchableOpacity, ScrollView, StyleSheet, Alert, StatusBar, Platform, NativeModules, Modal, TextInput, ActivityIndicator, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useColorScheme } from 'nativewind';
@@ -7,7 +7,7 @@ import BottomTab from '../../../../components/bottom-tab/BottomTab';
 import { io, Socket } from 'socket.io-client';
 import {
   Bell, Search, Unlock, Lock, Camera, CheckCircle, XCircle, Clock, Car, UserPlus, Phone, AlertOctagon,
-  Megaphone, Users, Check, Hash, ShieldCheck, Scan, Zap, ShieldAlert
+  Megaphone, Users, Check, Hash, ShieldCheck, Scan, Zap, ShieldAlert, User, ArrowRight
 } from 'lucide-react-native';
 
 type Session = {
@@ -30,6 +30,36 @@ const formatTime = (dateStr: string) => {
   return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
 
+const PulsingDot = ({ color = '#4ADE80' }) => {
+  const pulseAnim = React.useRef(new Animated.Value(0.4)).current;
+
+  React.useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 0.4,
+          duration: 1200,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, []);
+
+  return (
+    <Animated.View
+      style={{ opacity: pulseAnim }}
+      className="w-2 h-2 rounded-full mr-2"
+    >
+      <View style={{ backgroundColor: color }} className="w-full h-full rounded-full" />
+    </Animated.View>
+  );
+};
+
 // Live data from API replaces hardcoded placeholders
 
 const GuardDashboard = ({ navigation }: any) => {
@@ -38,6 +68,7 @@ const GuardDashboard = ({ navigation }: any) => {
   const [activeEmergency, setActiveEmergency] = useState(false);
   const [emergencyDetail, setEmergencyDetail] = useState<any>(null);
   const [pendingExits, setPendingExits] = useState<any[]>([]);
+  const [visitorsInside, setVisitorsInside] = useState<any[]>([]);
   const [nprLogs, setNprLogs] = useState<any[]>([]);
   const [stats, setStats] = useState({ totalToday: 0, insideNow: 0 });
   const [roster, setRoster] = useState<any>(null);
@@ -72,8 +103,9 @@ const GuardDashboard = ({ navigation }: any) => {
 
       if (lRes.status === 200) {
         const logs = lRes.data;
-        // Process logs for UI components
-        setPendingExits(logs.filter((l: any) => l.status === 'inside').slice(0, 3));
+        const inside = logs.filter((l: any) => l.status === 'inside');
+        setVisitorsInside(inside);
+        setPendingExits(inside.slice(0, 3));
         setNprLogs(logs.filter((l: any) => l.vehicle_number).slice(0, 4));
       }
       if (sRes.status === 200) {
@@ -219,7 +251,7 @@ const GuardDashboard = ({ navigation }: any) => {
   const { colorScheme } = useColorScheme();
 
   const name = session?.full_name ?? 'Guard Ahmed';
-  const shiftTime = roster 
+  const shiftTime = roster
     ? `${roster.shift_start} - ${roster.shift_end} (${roster.location || 'Main Gate'})`
     : 'Morning Shift (08:00 AM - 04:00 PM)';
 
@@ -435,130 +467,6 @@ const GuardDashboard = ({ navigation }: any) => {
         <View className="h-[2px] bg-gray-200 dark:bg-zinc-800/60 mb-3" />
         <View className="px-6 pt-6">
 
-          {/* 4. Emergency & Alert System (Top Priority if Active) */}
-          {activeEmergency && (
-            <View className="bg-red-500 dark:bg-red-600 rounded-2xl p-5 mb-6 shadow-sm shadow-red-200 dark:shadow-none">
-              <View className="flex-row items-center justify-between mb-4 border-b border-red-400/30 pb-4">
-                <View className="flex-row items-center">
-                  <AlertOctagon size={24} color="white" className="animate-pulse" />
-                  <Text className="text-white font-satoshi-black text-[18px] uppercase tracking-widest ml-2">Panic Alarm</Text>
-                </View>
-                <View className="bg-white px-3 py-1 rounded-full">
-                  <Text className="text-red-600 font-satoshi-bold text-[11px]">{emergencyDetail?.location || 'Unknown'}</Text>
-                </View>
-              </View>
-              <Text className="text-white font-satoshi-bold text-lg mb-1">{emergencyDetail?.sender?.full_name}</Text>
-              <Text className="text-red-550 font-satoshi-medium text-[13px] mb-4">{emergencyDetail?.description || 'A resident has triggered a severe Emergency SOS.'}</Text>
-              <View className="flex-row justify-between">
-                <TouchableOpacity
-                  onPress={() => {
-                    if (emergencyDetail?.sender?.phone) {
-                      Alert.alert("Calling...", `Contacting ${emergencyDetail?.sender?.full_name} at ${emergencyDetail?.sender?.phone}`);
-                    } else {
-                      Alert.alert("Error", "No phone number registered for this resident.");
-                    }
-                  }}
-                  className="bg-white/20 rounded-xl px-4 py-3 flex-row items-center justify-center flex-1 mr-3 border border-white/30"
-                >
-                  <Phone size={16} color="white" />
-                  <Text className="text-white font-satoshi-bold text-[12px] ml-2">Call Resident</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={handleResolveEmergency}
-                  className="bg-green-600 rounded-xl px-4 py-3 flex-row items-center justify-center flex-1 border border-green-500"
-                >
-                  <CheckCircle size={16} color="white" />
-                  <Text className="text-white font-satoshi-bold text-[12px] ml-2">Resolve SOS</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
-
-          {/* Greeting Banner */}
-          <View className="mb-6 bg-white dark:bg-zinc-900 p-5 rounded-[28px] border border-gray-100 dark:border-zinc-800 shadow-sm">
-            <View className="flex-row items-center justify-between">
-              <View className="flex-1 mr-2">
-                <Text className="text-gray-400 dark:text-zinc-500 font-satoshi-bold text-xs uppercase tracking-wider mb-1">On Duty Security Officer</Text>
-                <Text className="text-gray-900 dark:text-zinc-50 font-satoshi-black text-xl">{name}</Text>
-                <Text className="text-gray-500 dark:text-zinc-400 font-satoshi-medium text-xs mt-1">{shiftTime}</Text>
-              </View>
-              <TouchableOpacity
-                onPress={onLogout}
-                className="bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/30 px-4 py-2 rounded-xl"
-              >
-                <Text className="text-red-600 dark:text-red-400 font-satoshi-bold text-xs">End Shift</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Daily Stats */}
-          <View className="flex-row gap-x-4 mb-6">
-            <View className="flex-1 bg-white dark:bg-zinc-900 p-5 rounded-[28px] border border-gray-100 dark:border-zinc-800 shadow-sm">
-              <View className="w-10 h-10 bg-blue-50 dark:bg-blue-900/30 rounded-xl items-center justify-center mb-3">
-                <Users size={20} color="#2563EB" />
-              </View>
-              <Text className="text-gray-400 dark:text-zinc-500 font-satoshi-bold text-[10px] uppercase tracking-wider mb-1">Entries Today</Text>
-              <Text className="text-gray-900 dark:text-zinc-50 font-satoshi-black text-2xl">{stats.totalToday}</Text>
-            </View>
-            <View className="flex-1 bg-white dark:bg-zinc-900 p-5 rounded-[28px] border border-gray-100 dark:border-zinc-800 shadow-sm">
-              <View className="w-10 h-10 bg-green-50 dark:bg-green-900/30 rounded-xl items-center justify-center mb-3">
-                <CheckCircle size={20} color="#16A34A" />
-              </View>
-              <Text className="text-gray-400 dark:text-zinc-500 font-satoshi-bold text-[10px] uppercase tracking-wider mb-1">Currently Inside</Text>
-              <Text className="text-gray-900 dark:text-zinc-50 font-satoshi-black text-2xl">{stats.insideNow}</Text>
-            </View>
-          </View>
-
-          {/* Quick Actions Grid */}
-          <View className="mb-6">
-            <Text className="text-gray-900 dark:text-zinc-50 font-satoshi-bold text-[18px] mb-3">Quick Actions</Text>
-            <View className="flex-row flex-wrap justify-between gap-y-3">
-              <TouchableOpacity
-                onPress={() => stackNavigation.navigate('GateAccess')}
-                activeOpacity={0.8}
-                className="w-[48%] bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-gray-100 dark:border-zinc-800 shadow-sm flex-row items-center"
-              >
-                <View className="w-9 h-9 bg-blue-50 dark:bg-blue-900/30 rounded-xl items-center justify-center mr-3">
-                  <Scan size={18} color="#2563EB" />
-                </View>
-                <Text className="text-gray-900 dark:text-zinc-50 font-satoshi-bold text-xs flex-1">Scan Plate</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={() => { setVerifyModalVisible(true); }}
-                activeOpacity={0.8}
-                className="w-[48%] bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-gray-100 dark:border-zinc-800 shadow-sm flex-row items-center"
-              >
-                <View className="w-9 h-9 bg-purple-50 dark:bg-purple-900/30 rounded-xl items-center justify-center mr-3">
-                  <ShieldCheck size={18} color="#8B5CF6" />
-                </View>
-                <Text className="text-gray-900 dark:text-zinc-50 font-satoshi-bold text-xs flex-1">Verify Code</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={() => stackNavigation.navigate('GuestVerification')}
-                activeOpacity={0.8}
-                className="w-[48%] bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-gray-100 dark:border-zinc-800 shadow-sm flex-row items-center"
-              >
-                <View className="w-9 h-9 bg-green-50 dark:bg-green-900/30 rounded-xl items-center justify-center mr-3">
-                  <UserPlus size={18} color="#16A34A" />
-                </View>
-                <Text className="text-gray-900 dark:text-zinc-50 font-satoshi-bold text-xs flex-1">Ad-hoc Entry</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={handleManualOverride}
-                activeOpacity={0.8}
-                className="w-[48%] bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-gray-100 dark:border-zinc-800 shadow-sm flex-row items-center"
-              >
-                <View className="w-9 h-9 bg-orange-50 dark:bg-orange-900/30 rounded-xl items-center justify-center mr-3">
-                  <Zap size={18} color="#F97316" />
-                </View>
-                <Text className="text-gray-900 dark:text-zinc-50 font-satoshi-bold text-xs flex-1">Gate Override</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
           {/* 3.1 Digital Pings & Call Requests (NEW) */}
           <View className="mb-6">
             <View className="flex-row justify-between items-center mb-4">
@@ -601,6 +509,62 @@ const GuardDashboard = ({ navigation }: any) => {
             ) : (
               <View className="bg-white dark:bg-zinc-900 rounded-lg p-8 items-center border border-gray-100 dark:border-zinc-800 shadow-sm">
                 <Text className="text-gray-400 dark:text-zinc-500 font-satoshi-medium text-xs">No active call requests</Text>
+              </View>
+            )}
+          </View>
+
+          {/* Active Visitors in Society - BLUE BOARD STYLE */}
+          <View className="mb-6 p-6 bg-[#2563EB] rounded-[28px] shadow-lg shadow-blue-500/20">
+            <View className="flex-row items-center justify-between mb-6">
+              <View>
+                <Text className="text-white font-satoshi-black text-xl tracking-tight">Social Presence</Text>
+                <Text className="text-blue-100 text-[10px] font-satoshi-bold mt-1 uppercase tracking-widest">
+                  {visitorsInside.length > 0 ? `${visitorsInside.length} visitors active` : 'Community Status'}
+                </Text>
+              </View>
+              <View className="flex-row items-center bg-white/15 px-3 py-1.5 rounded-full">
+                <PulsingDot color={visitorsInside.length > 0 ? "#4ADE80" : "#4ADE80"} />
+                <Text className="text-white text-[10px] font-satoshi-black uppercase">
+                  {visitorsInside.length > 0 ? 'Live Inside' : 'All Clear'}
+                </Text>
+              </View>
+            </View>
+
+            {visitorsInside.length > 0 ? (
+              <>
+                <View className="flex-row flex-wrap justify-start gap-x-4">
+                  {visitorsInside.slice(0, 8).map((v: any, index: number) => (
+                    <View key={v._id || index} className="w-[22%] items-center mb-4">
+                      <View className="w-16 h-16 bg-white/10 rounded-[22px] items-center justify-center border border-white/5 relative">
+                        <Text className="text-white font-satoshi-black text-xl">{v.name ? v.name.charAt(0) : '?'}</Text>
+                        <View className="absolute -bottom-1 -right-1 bg-[#0B3BBE] p-1 rounded-lg border border-white/20">
+                          <User size={12} color="white" />
+                        </View>
+                      </View>
+                      <Text className="text-white font-satoshi-bold text-[10px] mt-2.5 w-full text-center" numberOfLines={1}>{v.name ? v.name.split(' ')[0] : 'Visitor'}</Text>
+                      <Text className="text-blue-100/50 font-satoshi-medium text-[8px] mt-0.5" numberOfLines={1}>{v.vehicle_number || 'Walk-in'}</Text>
+                    </View>
+                  ))}
+                </View>
+
+                {visitorsInside.length > 8 && (
+                  <TouchableOpacity
+                    onPress={() => stackNavigation.navigate('GateLogs')}
+                    activeOpacity={0.8}
+                    className="w-full bg-white/10 mt-2 py-4 rounded-2xl flex-row items-center justify-center border border-white/5"
+                  >
+                    <Text className="text-white font-satoshi-black text-[12px] uppercase tracking-widest">View Full List ({visitorsInside.length})</Text>
+                    <ArrowRight size={14} color="white" className="ml-2" />
+                  </TouchableOpacity>
+                )}
+              </>
+            ) : (
+              <View className="py-2 items-center">
+                <View className="w-16 h-16 bg-white/10 rounded-[22px] items-center justify-center mb-3">
+                  <CheckCircle size={28} color="white" strokeWidth={1.5} />
+                </View>
+                <Text className="text-white font-satoshi-bold text-center text-[13px]">Peaceful Environment</Text>
+                <Text className="text-blue-100/60 text-center text-[10px] mt-1 font-satoshi-medium px-8">No active visitors are currently inside the society</Text>
               </View>
             )}
           </View>
