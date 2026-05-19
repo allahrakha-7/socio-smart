@@ -32,7 +32,7 @@ import {
 } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { io, Socket } from 'socket.io-client';
-import { getApiBaseUrl } from '../../../../utils/apiConfig';
+import api, { getApiBaseUrl } from '../../../../utils/apiConfig';
 
 const { width } = Dimensions.get('window');
 const PRIMARY_BLUE = '#2563EB';
@@ -61,15 +61,9 @@ const GateAccess = ({ navigation }: any) => {
 
   const fetchRecent = async () => {
     try {
-      const baseUrl = getApiBaseUrl();
-      const rawSession = await AsyncStorage.getItem(SESSION_KEY);
-      const session = rawSession ? JSON.parse(rawSession) : null;
-      const response = await fetch(`${baseUrl}/api/gate/recent-activity`, {
-        headers: { 'Authorization': `Bearer ${session?.token}` }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setRecentDetections(data);
+      const response = await api.get('/api/gate/recent-activity');
+      if (response.status === 200) {
+        setRecentDetections(response.data);
       }
     } catch (e) { console.log(e); }
   };
@@ -104,25 +98,22 @@ const GateAccess = ({ navigation }: any) => {
     setConfidence(Math.floor(Math.random() * (99 - 85 + 1) + 85)); // Simulated Confidence
 
     try {
-      const baseUrl = getApiBaseUrl();
-      const rawSession = await AsyncStorage.getItem(SESSION_KEY);
-      const session = rawSession ? JSON.parse(rawSession) : null;
-
       // Logic Delay Simulation
       setTimeout(async () => {
         setProcessStep('OCR ANALYSIS...');
         setTimeout(async () => {
             setProcessStep('VERIFYING UID...');
-            const response = await fetch(`${baseUrl}/api/vehicles/verify-access`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.token}` },
-                body: JSON.stringify({ plate_number: plateInput })
-            });
-            const data = await response.json();
-            setResult(data);
-            setShowResult(true);
-            setProcessStep(data.authorized ? 'ACCESS GRANTED' : 'ACCESS DENIED');
-            setIsVerifying(false);
+            try {
+              const response = await api.post('/api/vehicles/verify-access', { plate_number: plateInput });
+              const data = response.data;
+              setResult(data);
+              setShowResult(true);
+              setProcessStep(data.authorized ? 'ACCESS GRANTED' : 'ACCESS DENIED');
+              setIsVerifying(false);
+            } catch (err) {
+              setProcessStep('ERROR: VERIFICATION FAILED');
+              setIsVerifying(false);
+            }
         }, 800);
       }, 800);
     } catch (error) {
@@ -137,14 +128,8 @@ const GateAccess = ({ navigation }: any) => {
       { text: "RELEASE", style: "destructive", onPress: async () => {
         setProcessStep('ACTUATING RELAY...');
         try {
-          const baseUrl = getApiBaseUrl();
-          const rawSession = await AsyncStorage.getItem(SESSION_KEY);
-          const session = rawSession ? JSON.parse(rawSession) : null;
-          const response = await fetch(`${baseUrl}/api/gate/manual-trigger`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${session?.token}`, 'Content-Type': 'application/json' }
-          });
-          if (response.ok) {
+          const response = await api.post('/api/gate/manual-trigger');
+          if (response.status === 200) {
             setProcessStep('BARRIER: OPEN');
             setShowResult(false);
             fetchRecent();
@@ -254,7 +239,7 @@ const GateAccess = ({ navigation }: any) => {
                     </View>
                     <View className="ml-4">
                        <Text className="text-gray-900 dark:text-zinc-50 font-satoshi-black text-[14px] tracking-widest">{det.plate_number || det.vehicle_number}</Text>
-                       <Text className="text-gray-400 font-satoshi-bold text-[9px] uppercase mt-0.5">{det.owner_name || 'Visitor'} ��� {det.type || 'NPR Scan'}</Text>
+                       <Text className="text-gray-400 font-satoshi-bold text-[9px] uppercase mt-0.5">{det.owner_name || 'Visitor'}  •  {det.type || 'NPR Scan'}</Text>
                     </View>
                  </View>
                  <View className={`px-3 py-1.5 rounded-full ${isAuth ? 'bg-green-50 dark:bg-green-900/10' : 'bg-rose-50 dark:bg-rose-900/10'}`}>

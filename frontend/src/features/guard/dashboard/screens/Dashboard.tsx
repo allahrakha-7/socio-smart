@@ -7,7 +7,7 @@ import BottomTab from '../../../../components/bottom-tab/BottomTab';
 import { io, Socket } from 'socket.io-client';
 import {
   Bell, Search, Unlock, Lock, Camera, CheckCircle, XCircle, Clock, Car, UserPlus, Phone, AlertOctagon,
-  Megaphone, Users, Check, Hash, ShieldCheck
+  Megaphone, Users, Check, Hash, ShieldCheck, Scan, Zap, ShieldAlert
 } from 'lucide-react-native';
 
 type Session = {
@@ -40,6 +40,7 @@ const GuardDashboard = ({ navigation }: any) => {
   const [pendingExits, setPendingExits] = useState<any[]>([]);
   const [nprLogs, setNprLogs] = useState<any[]>([]);
   const [stats, setStats] = useState({ totalToday: 0, insideNow: 0 });
+  const [roster, setRoster] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [verifyModalVisible, setVerifyModalVisible] = useState(false);
   const [passCode, setPassCode] = useState('');
@@ -61,10 +62,12 @@ const GuardDashboard = ({ navigation }: any) => {
   const fetchGuardData = async () => {
     setIsLoading(true);
     try {
-      const [lRes, sRes, aRes] = await Promise.all([
+      const [lRes, sRes, aRes, pRes, rRes] = await Promise.all([
         api.get('/api/gate/logs'),
         api.get('/api/gate/stats'),
-        api.get('/api/alerts/active')
+        api.get('/api/alerts/active'),
+        api.get('/api/communications/history'),
+        api.get('/api/rosters/current-duty')
       ]);
 
       if (lRes.status === 200) {
@@ -83,6 +86,22 @@ const GuardDashboard = ({ navigation }: any) => {
         if (activeAlerts.length > 0) {
           setEmergencyDetail(activeAlerts[0]);
         }
+      }
+      if (pRes.status === 200) {
+        const pending = pRes.data
+          .filter((c: any) => c.status === 'pending')
+          .map((c: any) => ({
+            id: c._id,
+            sender: c.resident_name || c.resident?.full_name || 'Resident',
+            house: c.house_number || c.resident?.house_number || 'N/A',
+            type: c.type,
+            time: c.createdAt || c.startTime,
+            status: c.status
+          }));
+        setIncomingPings(pending);
+      }
+      if (rRes.status === 200) {
+        setRoster(rRes.data);
       }
     } catch (e) {
       console.log("Guard data fetch error:", e);
@@ -105,10 +124,17 @@ const GuardDashboard = ({ navigation }: any) => {
       console.log('[Security Hub] SOS Critical Signal Received:', data);
       setActiveEmergency(true);
       setEmergencyDetail({
-        sender: { full_name: data.sender },
+        _id: data.id,
+        sender: { full_name: data.sender, phone: data.phone },
         location: data.location,
         description: 'Panic alarm triggered via SocioSmart SOS Hub. IoT Siren Active.'
       });
+    });
+
+    socket.on('emergency_resolved', (data) => {
+      console.log('[Security Hub] SOS Resolved Signal Received:', data);
+      setActiveEmergency(false);
+      setEmergencyDetail(null);
     });
 
     socket.on('security_ping', (data) => {
@@ -193,10 +219,37 @@ const GuardDashboard = ({ navigation }: any) => {
   const { colorScheme } = useColorScheme();
 
   const name = session?.full_name ?? 'Guard Ahmed';
-  const shiftTime = 'Morning Shift (08:00 AM - 04:00 PM)';
+  const shiftTime = roster 
+    ? `${roster.shift_start} - ${roster.shift_end} (${roster.location || 'Main Gate'})`
+    : 'Morning Shift (08:00 AM - 04:00 PM)';
 
   const handleManualOverride = () => {
-    navigation.navigate('GateOverride');
+    stackNavigation.navigate('GateOverride');
+  };
+
+  const handleResolveEmergency = async () => {
+    if (!emergencyDetail?._id && !emergencyDetail?.id) return;
+    const alertId = emergencyDetail._id || emergencyDetail.id;
+    Alert.alert("Resolve SOS", "Are you sure you have resolved this emergency?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Resolve",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            const response = await api.patch(`/api/alerts/resolve/${alertId}`);
+            if (response.status === 200) {
+              Alert.alert("Success", "Emergency resolved and logged.");
+              setActiveEmergency(false);
+              setEmergencyDetail(null);
+              fetchGuardData();
+            }
+          } catch (e) {
+            Alert.alert("Error", "Could not resolve emergency.");
+          }
+        }
+      }
+    ]);
   };
 
   const handleMarkExit = (logId: string, guestName: string) => {
@@ -384,7 +437,7 @@ const GuardDashboard = ({ navigation }: any) => {
 
           {/* 4. Emergency & Alert System (Top Priority if Active) */}
           {activeEmergency && (
-            <View className="bg-red-500 dark:bg-red-600 rounded-2xl p-5 mb-8 shadow-sm shadow-red-200 dark:shadow-none">
+            <View className="bg-red-500 dark:bg-red-600 rounded-2xl p-5 mb-6 shadow-sm shadow-red-200 dark:shadow-none">
               <View className="flex-row items-center justify-between mb-4 border-b border-red-400/30 pb-4">
                 <View className="flex-row items-center">
                   <AlertOctagon size={24} color="white" className="animate-pulse" />
@@ -395,22 +448,116 @@ const GuardDashboard = ({ navigation }: any) => {
                 </View>
               </View>
               <Text className="text-white font-satoshi-bold text-lg mb-1">{emergencyDetail?.sender?.full_name}</Text>
-              <Text className="text-red-50 font-satoshi-medium text-[13px] mb-4">{emergencyDetail?.description || 'A resident has triggered a severe Emergency SOS.'}</Text>
+              <Text className="text-red-550 font-satoshi-medium text-[13px] mb-4">{emergencyDetail?.description || 'A resident has triggered a severe Emergency SOS.'}</Text>
               <View className="flex-row justify-between">
                 <TouchableOpacity
-                  onPress={() => Alert.alert("Calling...", `Contacting ${emergencyDetail?.sender?.full_name} at ${emergencyDetail?.sender?.phone}`)}
+                  onPress={() => {
+                    if (emergencyDetail?.sender?.phone) {
+                      Alert.alert("Calling...", `Contacting ${emergencyDetail?.sender?.full_name} at ${emergencyDetail?.sender?.phone}`);
+                    } else {
+                      Alert.alert("Error", "No phone number registered for this resident.");
+                    }
+                  }}
                   className="bg-white/20 rounded-xl px-4 py-3 flex-row items-center justify-center flex-1 mr-3 border border-white/30"
                 >
                   <Phone size={16} color="white" />
                   <Text className="text-white font-satoshi-bold text-[12px] ml-2">Call Resident</Text>
                 </TouchableOpacity>
-                <TouchableOpacity className="bg-red-700/50 rounded-xl px-4 py-3 flex-row items-center justify-center flex-1 border border-red-900/20">
-                  <AlertOctagon size={16} color="white" />
-                  <Text className="text-white font-satoshi-bold text-[12px] ml-2">Notify Admin</Text>
+                <TouchableOpacity
+                  onPress={handleResolveEmergency}
+                  className="bg-green-600 rounded-xl px-4 py-3 flex-row items-center justify-center flex-1 border border-green-500"
+                >
+                  <CheckCircle size={16} color="white" />
+                  <Text className="text-white font-satoshi-bold text-[12px] ml-2">Resolve SOS</Text>
                 </TouchableOpacity>
               </View>
             </View>
           )}
+
+          {/* Greeting Banner */}
+          <View className="mb-6 bg-white dark:bg-zinc-900 p-5 rounded-[28px] border border-gray-100 dark:border-zinc-800 shadow-sm">
+            <View className="flex-row items-center justify-between">
+              <View className="flex-1 mr-2">
+                <Text className="text-gray-400 dark:text-zinc-500 font-satoshi-bold text-xs uppercase tracking-wider mb-1">On Duty Security Officer</Text>
+                <Text className="text-gray-900 dark:text-zinc-50 font-satoshi-black text-xl">{name}</Text>
+                <Text className="text-gray-500 dark:text-zinc-400 font-satoshi-medium text-xs mt-1">{shiftTime}</Text>
+              </View>
+              <TouchableOpacity
+                onPress={onLogout}
+                className="bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/30 px-4 py-2 rounded-xl"
+              >
+                <Text className="text-red-600 dark:text-red-400 font-satoshi-bold text-xs">End Shift</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Daily Stats */}
+          <View className="flex-row gap-x-4 mb-6">
+            <View className="flex-1 bg-white dark:bg-zinc-900 p-5 rounded-[28px] border border-gray-100 dark:border-zinc-800 shadow-sm">
+              <View className="w-10 h-10 bg-blue-50 dark:bg-blue-900/30 rounded-xl items-center justify-center mb-3">
+                <Users size={20} color="#2563EB" />
+              </View>
+              <Text className="text-gray-400 dark:text-zinc-500 font-satoshi-bold text-[10px] uppercase tracking-wider mb-1">Entries Today</Text>
+              <Text className="text-gray-900 dark:text-zinc-50 font-satoshi-black text-2xl">{stats.totalToday}</Text>
+            </View>
+            <View className="flex-1 bg-white dark:bg-zinc-900 p-5 rounded-[28px] border border-gray-100 dark:border-zinc-800 shadow-sm">
+              <View className="w-10 h-10 bg-green-50 dark:bg-green-900/30 rounded-xl items-center justify-center mb-3">
+                <CheckCircle size={20} color="#16A34A" />
+              </View>
+              <Text className="text-gray-400 dark:text-zinc-500 font-satoshi-bold text-[10px] uppercase tracking-wider mb-1">Currently Inside</Text>
+              <Text className="text-gray-900 dark:text-zinc-50 font-satoshi-black text-2xl">{stats.insideNow}</Text>
+            </View>
+          </View>
+
+          {/* Quick Actions Grid */}
+          <View className="mb-6">
+            <Text className="text-gray-900 dark:text-zinc-50 font-satoshi-bold text-[18px] mb-3">Quick Actions</Text>
+            <View className="flex-row flex-wrap justify-between gap-y-3">
+              <TouchableOpacity
+                onPress={() => stackNavigation.navigate('GateAccess')}
+                activeOpacity={0.8}
+                className="w-[48%] bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-gray-100 dark:border-zinc-800 shadow-sm flex-row items-center"
+              >
+                <View className="w-9 h-9 bg-blue-50 dark:bg-blue-900/30 rounded-xl items-center justify-center mr-3">
+                  <Scan size={18} color="#2563EB" />
+                </View>
+                <Text className="text-gray-900 dark:text-zinc-50 font-satoshi-bold text-xs flex-1">Scan Plate</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => { setVerifyModalVisible(true); }}
+                activeOpacity={0.8}
+                className="w-[48%] bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-gray-100 dark:border-zinc-800 shadow-sm flex-row items-center"
+              >
+                <View className="w-9 h-9 bg-purple-50 dark:bg-purple-900/30 rounded-xl items-center justify-center mr-3">
+                  <ShieldCheck size={18} color="#8B5CF6" />
+                </View>
+                <Text className="text-gray-900 dark:text-zinc-50 font-satoshi-bold text-xs flex-1">Verify Code</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => stackNavigation.navigate('GuestVerification')}
+                activeOpacity={0.8}
+                className="w-[48%] bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-gray-100 dark:border-zinc-800 shadow-sm flex-row items-center"
+              >
+                <View className="w-9 h-9 bg-green-50 dark:bg-green-900/30 rounded-xl items-center justify-center mr-3">
+                  <UserPlus size={18} color="#16A34A" />
+                </View>
+                <Text className="text-gray-900 dark:text-zinc-50 font-satoshi-bold text-xs flex-1">Ad-hoc Entry</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={handleManualOverride}
+                activeOpacity={0.8}
+                className="w-[48%] bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-gray-100 dark:border-zinc-800 shadow-sm flex-row items-center"
+              >
+                <View className="w-9 h-9 bg-orange-50 dark:bg-orange-900/30 rounded-xl items-center justify-center mr-3">
+                  <Zap size={18} color="#F97316" />
+                </View>
+                <Text className="text-gray-900 dark:text-zinc-50 font-satoshi-bold text-xs flex-1">Gate Override</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
 
           {/* 3.1 Digital Pings & Call Requests (NEW) */}
           <View className="mb-6">
@@ -431,7 +578,7 @@ const GuardDashboard = ({ navigation }: any) => {
                       </View>
                       <View className="flex-1">
                         <Text className="text-gray-900 dark:text-zinc-50 font-satoshi-bold text-[15px]">{ping.sender}</Text>
-                        <Text className="text-gray-500 dark:text-zinc-400 font-satoshi-medium text-[12px]">House {ping.house} ��� {ping.type}</Text>
+                        <Text className="text-gray-500 dark:text-zinc-400 font-satoshi-medium text-[12px]">House {ping.house} • {ping.type}</Text>
                       </View>
                     </View>
                     <View className="flex-row gap-x-2">
@@ -492,7 +639,7 @@ const GuardDashboard = ({ navigation }: any) => {
                   <View key={visitor._id} className={`p-4 flex-row justify-between items-center ${idx !== pendingExits.length - 1 ? 'border-b border-gray-50 dark:border-zinc-800' : ''}`}>
                     <View className="flex-1 pr-4">
                       <Text className="text-gray-900 dark:text-zinc-50 font-satoshi-bold text-[15px]">{visitor.name}</Text>
-                      <Text className="text-gray-500 dark:text-zinc-400 font-satoshi-medium text-[12px] mt-1">{visitor.vehicle_number || 'Walk-in'} ��� {formatTime(visitor.entry_time)}</Text>
+                      <Text className="text-gray-500 dark:text-zinc-400 font-satoshi-medium text-[12px] mt-1">{visitor.vehicle_number || 'Walk-in'}  •  {formatTime(visitor.entry_time)}</Text>
                     </View>
                     <View className="items-end">
                       <View className="bg-blue-50 dark:bg-blue-900/40 px-2 py-1 rounded mb-2">
@@ -534,7 +681,7 @@ const GuardDashboard = ({ navigation }: any) => {
                             {!isExited ? 'Inside Society' : 'Exited Society'}
                           </Text>
                         </View>
-                        <Text className="text-gray-500 dark:text-zinc-400 font-satoshi-medium text-[11px]">{plate.name} ��� {formatTime(plate.entry_time)}</Text>
+                        <Text className="text-gray-500 dark:text-zinc-400 font-satoshi-medium text-[11px]">{plate.name}  •  {formatTime(plate.entry_time)}</Text>
                       </View>
                     </View>
                   );
@@ -613,7 +760,7 @@ const GuardDashboard = ({ navigation }: any) => {
                   </View>
                   <View>
                     <Text className="text-gray-900 dark:text-zinc-50 font-satoshi-black text-xl">{verifiedVisitor.name}</Text>
-                    <Text className="text-gray-500 dark:text-zinc-400 font-satoshi-medium">{verifiedVisitor.type} ��� {verifiedVisitor.phone}</Text>
+                    <Text className="text-gray-500 dark:text-zinc-400 font-satoshi-medium">{verifiedVisitor.type}  •  {verifiedVisitor.phone}</Text>
                   </View>
                 </View>
                 <View className="flex-row justify-between items-center bg-white/50 dark:bg-zinc-800/50 p-4 rounded-2xl border border-blue-50 dark:border-zinc-700">

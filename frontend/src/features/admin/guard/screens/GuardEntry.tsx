@@ -20,7 +20,7 @@ const PRIMARY_COLOR = '#2563EB';
 const SESSION_KEY = '@sociosmart/session_v1';
 
 
-import { getApiBaseUrl } from '../../../../utils/apiConfig';
+import api, { getApiBaseUrl } from '../../../../utils/apiConfig';
 
 const GuardEntry = ({ navigation }: any) => {
   const { colorScheme } = useColorScheme();
@@ -31,17 +31,12 @@ const GuardEntry = ({ navigation }: any) => {
   const [host, setHost] = useState('');
   const [query, setQuery] = useState('');
   const [entries, setEntries] = useState<any[]>([]);
-  const [token, setToken] = useState('');
 
-  const fetchEntries = async (t: string) => {
+  const fetchEntries = async () => {
     try {
-      const baseUrl = getApiBaseUrl();
-      const res = await fetch(`${baseUrl}/api/gate/logs`, {
-        headers: { Authorization: `Bearer ${t}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setEntries(data);
+      const res = await api.get('/api/gate/logs');
+      if (res.status === 200) {
+        setEntries(res.data);
       }
     } catch (e) {
       console.log("Fetch logs error:", e);
@@ -49,17 +44,7 @@ const GuardEntry = ({ navigation }: any) => {
   };
 
   React.useEffect(() => {
-    const load = async () => {
-      const raw = await AsyncStorage.getItem(SESSION_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (parsed.token) {
-          setToken(parsed.token);
-          fetchEntries(parsed.token);
-        }
-      }
-    };
-    load();
+    fetchEntries();
   }, []);
 
   const filtered = useMemo(() => {
@@ -95,30 +80,22 @@ const GuardEntry = ({ navigation }: any) => {
 
     setIsSaving(true);
     try {
-      const baseUrl = getApiBaseUrl();
-      const res = await fetch(`${baseUrl}/api/gate/entry`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          name: n,
-          vehicle_number: v || 'Walk-in',
-          unit_to_visit: h,
-          type: 'Visitor'
-        })
+      const res = await api.post('/api/gate/entry', {
+        name: n,
+        vehicle_number: v || 'Walk-in',
+        unit_to_visit: h,
+        type: 'Visitor'
       });
 
-      if (res.ok) {
-        fetchEntries(token);
+      if (res.status === 201 || res.status === 200) {
+        fetchEntries();
         setIsModalVisible(false);
       } else {
-        const err = await res.json();
-        Alert.alert('Error', err.message || 'Failed to save entry');
+        Alert.alert('Error', 'Failed to save entry');
       }
-    } catch (e) {
-      Alert.alert('Error', 'Check your connection');
+    } catch (e: any) {
+      const errMsg = e.response?.data?.message || 'Check your connection';
+      Alert.alert('Error', errMsg);
     } finally {
       setIsSaving(false);
     }
@@ -126,13 +103,9 @@ const GuardEntry = ({ navigation }: any) => {
 
   const markExit = async (id: string) => {
     try {
-      const baseUrl = getApiBaseUrl();
-      const res = await fetch(`${baseUrl}/api/gate/exit/${id}`, {
-        method: 'PATCH',
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.ok) {
-        fetchEntries(token);
+      const res = await api.patch(`/api/gate/exit/${id}`);
+      if (res.status === 200) {
+        fetchEntries();
       }
     } catch (e) {
       Alert.alert('Error', 'Failed to mark exit');
@@ -191,7 +164,7 @@ const GuardEntry = ({ navigation }: any) => {
                     <Text className="text-gray-900 dark:text-zinc-50 font-satoshi-bold text-base leading-tight">{item.name}</Text>
                     <View className="flex-row items-center mt-1">
                       <Car size={14} color={colorScheme === 'dark' ? '#52525B' : "#9CA3AF"} />
-                      <Text className="text-gray-500 dark:text-zinc-500 text-xs font-satoshi-medium ml-2">{item.vehicle_number || 'Walk-in'} ��� {item.unit_to_visit}</Text>
+                      <Text className="text-gray-500 dark:text-zinc-500 text-xs font-satoshi-medium ml-2">{item.vehicle_number || 'Walk-in'}  •  {item.unit_to_visit}</Text>
                     </View>
                   </View>
                   <View className={`px-2.5 py-1 rounded-full flex-row items-center ${isExited ? 'bg-gray-100 dark:bg-zinc-800' : 'bg-green-100 dark:bg-green-900/40'}`}>
@@ -212,7 +185,7 @@ const GuardEntry = ({ navigation }: any) => {
                       <Text className="text-white dark:text-zinc-50 text-[10px] font-satoshi-bold tracking-[1.5px] uppercase">Mark Exit</Text>
                     </TouchableOpacity>
                   ) : (
-                    <Text className="text-gray-300 dark:text-zinc-500 text-[10px] font-satoshi-bold uppercase tracking-widest">Session Closed ��� {formatTime(item.exit_time)}</Text>
+                    <Text className="text-gray-300 dark:text-zinc-500 text-[10px] font-satoshi-bold uppercase tracking-widest">Session Closed  •  {formatTime(item.exit_time)}</Text>
                   )}
                 </View>
               </View>

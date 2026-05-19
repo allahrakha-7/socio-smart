@@ -117,7 +117,7 @@ const GuestVerification = ({ navigation }: any) => {
                   </View>
                   <View className="ml-4 flex-1">
                     <Text className="text-gray-900 dark:text-zinc-50 font-satoshi-bold text-base">{res.full_name}</Text>
-                    <Text className="text-gray-500 dark:text-zinc-400 text-xs font-satoshi-medium">Unit {res.house_number} ��� {res.phone}</Text>
+                    <Text className="text-gray-500 dark:text-zinc-400 text-xs font-satoshi-medium">Unit {res.house_number}  •  {res.phone}</Text>
                   </View>
                   {selectedResident?._id === res._id ? (
                     <CheckCircle2 size={24} color={PRIMARY_COLOR} />

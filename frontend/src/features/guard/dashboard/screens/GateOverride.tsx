@@ -29,7 +29,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const SESSION_KEY = '@sociosmart/session_v1';
 
-import { getApiBaseUrl } from '../../../../utils/apiConfig';
+import api, { getApiBaseUrl } from '../../../../utils/apiConfig';
 
 const GateOverride = ({ navigation }: any) => {
   const { colorScheme } = useColorScheme();
@@ -51,15 +51,8 @@ const GateOverride = ({ navigation }: any) => {
   useEffect(() => {
     const checkStatus = async () => {
       try {
-        const baseUrl = getApiBaseUrl();
-        const rawSession = await AsyncStorage.getItem(SESSION_KEY);
-        const session = rawSession ? JSON.parse(rawSession) : null;
-        if (!session?.token) return;
-
-        const response = await fetch(`${baseUrl}/api/gate/stats`, {
-          headers: { Authorization: `Bearer ${session.token}` }
-        });
-        if (response.ok) {
+        const response = await api.get('/api/gate/stats');
+        if (response.status === 200) {
           setOfflineMode(false);
         }
       } catch (e) {
@@ -74,31 +67,20 @@ const GateOverride = ({ navigation }: any) => {
 
     setIsProcessing(true);
     try {
-      const baseUrl = getApiBaseUrl();
-      const rawSession = await AsyncStorage.getItem(SESSION_KEY);
-      const session = rawSession ? JSON.parse(rawSession) : null;
-
-      const response = await fetch(`${baseUrl}/api/gate/manual-trigger`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.token}`
-        },
-        body: JSON.stringify({
-          action: nextState.toUpperCase()
-        })
+      const response = await api.post('/api/gate/manual-trigger', {
+        action: nextState.toUpperCase()
       });
 
-      if (response.ok) {
+      if (response.status === 200) {
         setGateState(nextState);
         setOfflineMode(false);
       } else {
-        const err = await response.json();
-        Alert.alert('Control Error', err.message || 'Failed to transmit override command.');
+        Alert.alert('Control Error', 'Failed to transmit override command.');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Override error:', error);
-      Alert.alert('System Error', 'Could not communicate with Gate Bridge. Check physical wiring.');
+      const errMsg = error.response?.data?.message || 'Could not communicate with Gate Bridge. Check physical wiring.';
+      Alert.alert('System Error', errMsg);
     } finally {
       setIsProcessing(false);
     }

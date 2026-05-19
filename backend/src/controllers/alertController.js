@@ -31,6 +31,7 @@ export const triggerSOS = async (req, res) => {
       const payload = {
         id: alert._id,
         sender: resident.full_name,
+        phone: resident.phone,
         location: alert.location,
         time: alert.createdAt,
         routedTo: guardId
@@ -89,8 +90,16 @@ export const resolveAlert = async (req, res) => {
       { new: true }
     );
     if (!alert) return res.status(404).json({ message: 'Alert not found' });
+
+    // Notify Dashboards via Socket
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('emergency_resolved', { id });
+    }
+
     res.status(200).json(alert);
   } catch (error) {
     res.status(500).json({ message: 'Error resolving alert' });
   }
 };
+
