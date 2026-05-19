@@ -225,7 +225,7 @@ const ManageComplaints = ({ navigation }: any) => {
             <Text className="text-gray-500 dark:text-zinc-400 text-xs font-satoshi-medium ml-1.5">{item.resident?.house_number || 'N/A'}</Text>
           </View>
           <View className="flex-row items-center">
-            <Text className="text-gray-300 dark:text-zinc-800 mr-2">���</Text>
+            <Text className="text-gray-300 dark:text-zinc-800 mr-2">•</Text>
             <Text className="text-gray-500 dark:text-zinc-400 text-xs font-satoshi-medium">{item.resident?.full_name}</Text>
           </View>
         </View>
@@ -253,18 +253,15 @@ const ManageComplaints = ({ navigation }: any) => {
   return (
     <SafeAreaView className="flex-1 bg-offWhite dark:bg-zinc-950">
       <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={colorScheme === 'dark' ? '#09090b' : "#F8FAFC"} />
-      <View className="flex-row items-center justify-between px-6 py-4">
+      <View className="flex-row items-center justify-between px-6 py-5 bg-white dark:bg-zinc-900 border-b border-gray-100 dark:border-zinc-800">
         <View className="flex-row items-center">
           <TouchableOpacity
             onPress={() => navigation.goBack()}
-            activeOpacity={0.7}
-            className="p-3 mr-5"
+            className="w-10 h-10 items-center justify-center mr-4"
           >
-            <ArrowLeft size={24} color={colorScheme === 'dark' ? '#F4F4F5' : "#1F2937"} />
+            <ArrowLeft size={20} color={colorScheme === 'dark' ? '#F4F4F5' : '#64748B'} />
           </TouchableOpacity>
-          <View>
-            <Text className="text-2xl font-satoshi-bold text-gray-900 dark:text-zinc-50 tracking-tight">Complaints</Text>
-          </View>
+          <Text className="text-[20px] font-satoshi-bold text-gray-900 dark:text-zinc-50">Complaints</Text>
         </View>
       </View>
 
@@ -289,7 +286,7 @@ const ManageComplaints = ({ navigation }: any) => {
             <TouchableOpacity
               activeOpacity={0.7}
               onPress={() => setActiveFilter('Pending')}
-              className="flex-1 bg-white/15 rounded-xl px-4 py-3 mr-3"
+              className="flex-1 bg-white/15 rounded-lg px-4 py-3 mr-3"
             >
               <Text className="text-white text-sm font-satoshi-bold">{pendingCount}</Text>
               <Text className="text-blue-100 text-[10px] font-satoshi-bold mt-1 uppercase">Pending</Text>
@@ -297,7 +294,7 @@ const ManageComplaints = ({ navigation }: any) => {
             <TouchableOpacity
               activeOpacity={0.7}
               onPress={() => setActiveFilter('In Progress')}
-              className="flex-1 bg-white/15 rounded-2xl px-4 py-3"
+              className="flex-1 bg-white/15 rounded-lg px-4 py-3"
             >
               <Text className="text-white text-sm font-satoshi-bold">{progressCount}</Text>
               <Text className="text-blue-100 text-[10px] font-satoshi-bold mt-1 uppercase">In Progress</Text>
@@ -383,7 +380,7 @@ const ManageComplaints = ({ navigation }: any) => {
                   </View>
                   <Text className="text-xl font-satoshi-bold text-gray-900 dark:text-zinc-50 text-center px-4">{selectedComplaint?.title}</Text>
                   <Text className="text-sm font-satoshi-medium text-gray-500 dark:text-zinc-400 mt-1">
-                    {selectedComplaint?.resident?.house_number || 'N/A'} ��� {selectedComplaint?.resident?.full_name}
+                    {selectedComplaint?.resident?.house_number || 'N/A'} • {selectedComplaint?.resident?.full_name}
                   </Text>
                 </View>
 

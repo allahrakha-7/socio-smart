@@ -278,8 +278,8 @@ const AdminProfile = ({ navigation }: any) => {
       <SafeAreaView className="flex-1 bg-white dark:bg-zinc-950 items-center justify-center">
         <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={colorScheme === 'dark' ? '#09090b' : "#FFFFFF"} />
         <View style={{ flex: 1, minHeight: 400, justifyContent: "center", alignItems: "center" }}>
-  <ActivityIndicator size="large" color={PRIMARY_COLOR} />
-</View>
+          <ActivityIndicator size="large" color={PRIMARY_COLOR} />
+        </View>
       </SafeAreaView>
     );
   }
@@ -416,7 +416,7 @@ const AdminProfile = ({ navigation }: any) => {
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
         {/* User Card */}
         {!isEditing ? (
-          <View className="mx-6 mt-2 mb-6 bg-white dark:bg-zinc-900 rounded-[24px] shadow-sm p-5 border border-gray-100 dark:border-zinc-800">
+          <View className="mx-3 mt-2 mb-4 bg-white dark:bg-zinc-900 rounded-lg shadow-sm p-5 border border-gray-100 dark:border-zinc-800">
             <View className="flex-row items-center">
               <Image
                 source={(profileData.image && !profileData.image.includes('default_avatar.png')) ? { uri: profileData.image } : DEFAULT_PROFILE}
@@ -440,7 +440,7 @@ const AdminProfile = ({ navigation }: any) => {
             </View>
           </View>
         ) : (
-          <View className="mx-6 mt-2 mb-6 bg-white dark:bg-zinc-900 rounded-[24px] shadow-sm p-5 border border-blue-100 dark:border-blue-900/40">
+          <View className="mx-3 mt-2 mb-4 bg-white dark:bg-zinc-900 rounded-lg shadow-sm p-5 border border-blue-100 dark:border-blue-900/40">
             <View className="flex-row items-center mb-5">
               <TouchableOpacity onPress={pickImage} activeOpacity={0.8}>
                 <View className="relative">
@@ -504,7 +504,7 @@ const AdminProfile = ({ navigation }: any) => {
         )}
 
         {/* Preferences */}
-        <View className="mx-6 mb-6 overflow-hidden rounded-[24px] bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 shadow-sm">
+        <View className="mx-3 mb-4 overflow-hidden rounded-lg bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 shadow-sm">
           <View className="px-5 py-4 border-b border-gray-100 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-900/50">
             <Text className="text-gray-500 dark:text-zinc-500 font-satoshi-bold text-[12px] uppercase tracking-wider">Preferences</Text>
           </View>
@@ -532,7 +532,7 @@ const AdminProfile = ({ navigation }: any) => {
         </View>
 
         {/* More */}
-        <View className="mx-6 mb-6 overflow-hidden rounded-[24px] bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 shadow-sm">
+        <View className="mx-3 mb-4 overflow-hidden rounded-lg bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 shadow-sm">
           <View className="px-5 py-4 border-b border-gray-100 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-900/50">
             <Text className="text-gray-500 dark:text-zinc-500 font-satoshi-bold text-[12px] uppercase tracking-wider">More</Text>
           </View>

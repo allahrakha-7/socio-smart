@@ -2,7 +2,7 @@ import React, { useState, useCallback, useMemo } from 'react';
 import {
   Text, TextInput, View, ScrollView, Pressable, FlatList,
   ActivityIndicator, Platform, NativeModules, StatusBar,
-  Alert as RNAlert, Appearance, RefreshControl, TouchableOpacity, Share
+  Alert as RNAlert, Appearance, RefreshControl, TouchableOpacity, Share, Image
 } from 'react-native';
 import {
   Search,
@@ -199,6 +199,16 @@ const GateLogs = ({ navigation }: any) => {
             <Text className={`text-[9px] font-satoshi-black uppercase ${isExited ? 'text-zinc-500' : 'text-green-700 dark:text-green-400'}`}>{item.status}</Text>
           </View>
         </View>
+
+        {session?.role === 'admin' && item.plate_image && (
+          <View className="mt-4 mb-2 rounded-2xl overflow-hidden border border-gray-100 dark:border-zinc-800">
+            <Image
+              source={{ uri: item.plate_image }}
+              className="w-full h-32"
+              resizeMode="cover"
+            />
+          </View>
+        )}
 
         {/* Audit Data Block */}
         <View className="mt-6 bg-zinc-50 dark:bg-zinc-800/30 p-4 rounded-3xl space-y-3">

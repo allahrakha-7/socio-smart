@@ -97,10 +97,10 @@ const MyVehicles = ({ navigation }: any) => {
 
   const handleAddVehicle = async () => {
     if (!plateNumber || !makeModel || !color) {
-      setModalConfig({ 
-        type: 'error', 
-        title: 'Missing Information', 
-        message: 'Please complete all fields to register your vehicle in the society database.' 
+      setModalConfig({
+        type: 'error',
+        title: 'Missing Information',
+        message: 'Please complete all fields to register your vehicle in the society database.'
       });
       setModalVisible(true);
       return;
@@ -125,10 +125,10 @@ const MyVehicles = ({ navigation }: any) => {
       });
 
       if (response.ok) {
-        setModalConfig({ 
-          type: 'success', 
-          title: 'Registration Submitted', 
-          message: 'Your vehicle has been added. Security will verify the details for automatic gate access.' 
+        setModalConfig({
+          type: 'success',
+          title: 'Registration Submitted',
+          message: 'Your vehicle has been added. Security will verify the details for automatic gate access.'
         });
         setModalVisible(true);
         setShowAddModal(false);
@@ -152,8 +152,8 @@ const MyVehicles = ({ navigation }: any) => {
 
   const handleDelete = (id: string) => {
     RNAlert.alert(
-      "Deregister Vehicle", 
-      "Are you sure you want to remove this vehicle? This will disable automatic gate access immediately.", 
+      "Deregister Vehicle",
+      "Are you sure you want to remove this vehicle? This will disable automatic gate access immediately.",
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -192,37 +192,19 @@ const MyVehicles = ({ navigation }: any) => {
           </TouchableOpacity>
           <View>
             <Text className="text-[20px] font-satoshi-bold text-gray-900 dark:text-zinc-50">My Vehicles</Text>
-            <Text className="text-[11px] text-gray-400 font-satoshi-medium">Manage your fleet & gate access</Text>
           </View>
         </View>
 
         <TouchableOpacity
           onPress={() => setShowAddModal(true)}
           activeOpacity={0.8}
-          className="w-11 h-11 bg-blue-600 rounded-2xl items-center justify-center shadow-lg shadow-blue-500/30"
+          className="w-11 h-11 bg-blue-600 rounded-full items-center justify-center shadow-lg shadow-blue-500/30"
         >
           <Plus size={22} color="white" strokeWidth={2.5} />
         </TouchableOpacity>
       </View>
 
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}>
-        {/* Security Banner */}
-        <View className="mt-6 p-6 bg-blue-600 rounded-[32px] shadow-xl shadow-blue-500/20 overflow-hidden">
-          <View className="absolute -top-10 -right-10 opacity-10">
-            <Zap size={180} color="white" />
-          </View>
-          <View className="flex-row items-center mb-3">
-            <View className="w-8 h-8 bg-white/20 rounded-full items-center justify-center">
-              <ShieldCheck size={16} color="white" />
-            </View>
-            <Text className="text-blue-100 font-satoshi-bold text-[10px] ml-2 uppercase tracking-[2px]">Smart Gate Entry</Text>
-          </View>
-          <Text className="text-white font-satoshi-black text-2xl leading-tight">Fast Lane Access</Text>
-          <Text className="text-blue-100/80 font-satoshi-medium text-xs mt-2 leading-5">
-            Your registered vehicles use AI-powered plate recognition for seamless entry. Keep your plate numbers updated.
-          </Text>
-        </View>
-
         {/* Stats Section */}
         <View className="flex-row mt-6 justify-between">
           <View className="bg-white dark:bg-zinc-900 p-5 rounded-[28px] w-[48%] border border-zinc-100 dark:border-zinc-800 shadow-sm">
@@ -257,8 +239,8 @@ const MyVehicles = ({ navigation }: any) => {
               </View>
               <Text className="text-gray-400 font-satoshi-bold text-sm mt-5">No Vehicles Registered</Text>
               <Text className="text-gray-400 font-satoshi-medium text-[11px] mt-1 mb-8">Add your vehicle to start using the smart gate.</Text>
-              <TouchableOpacity 
-                onPress={() => setShowAddModal(true)} 
+              <TouchableOpacity
+                onPress={() => setShowAddModal(true)}
                 className="px-8 py-3.5 bg-blue-600 rounded-full shadow-lg shadow-blue-500/30"
               >
                 <Text className="text-white font-satoshi-black text-xs tracking-widest">REGISTER NOW</Text>
@@ -307,8 +289,8 @@ const MyVehicles = ({ navigation }: any) => {
                       </Text>
                     </View>
                   </View>
-                  <TouchableOpacity 
-                    onPress={() => handleDelete(v._id)} 
+                  <TouchableOpacity
+                    onPress={() => handleDelete(v._id)}
                     activeOpacity={0.6}
                     className="w-10 h-10 bg-rose-50 dark:bg-rose-900/10 rounded-full items-center justify-center border border-rose-100 dark:border-rose-900/20"
                   >
@@ -324,22 +306,22 @@ const MyVehicles = ({ navigation }: any) => {
       {/* Add Vehicle Modal */}
       <Modal visible={showAddModal} animationType="slide" transparent>
         <View className="flex-1 bg-black/60 justify-end">
-          <TouchableOpacity 
-            activeOpacity={1} 
-            onPress={() => setShowAddModal(false)} 
-            className="flex-1" 
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={() => setShowAddModal(false)}
+            className="flex-1"
           />
           <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
             <View className="bg-white dark:bg-zinc-950 rounded-t-[44px] p-8 pb-12 shadow-2xl">
               <View className="w-12 h-1.5 bg-gray-200 dark:bg-zinc-800 rounded-full self-center mb-6" />
-              
+
               <View className="flex-row justify-between items-center mb-8">
                 <View>
                   <Text className="text-2xl font-satoshi-black text-gray-900 dark:text-zinc-50">Register Vehicle</Text>
                   <Text className="text-gray-400 font-satoshi-medium text-xs mt-1">Linking to Unit {session?.house_number}</Text>
                 </View>
-                <TouchableOpacity 
-                  onPress={() => setShowAddModal(false)} 
+                <TouchableOpacity
+                  onPress={() => setShowAddModal(false)}
                   className="w-10 h-10 bg-zinc-50 dark:bg-zinc-900 rounded-full items-center justify-center border border-zinc-100 dark:border-zinc-800"
                 >
                   <X size={20} color={isDark ? '#F4F4F5' : "#1E293B"} />
@@ -453,12 +435,12 @@ const MyVehicles = ({ navigation }: any) => {
         </View>
       </Modal>
 
-      <StatusModal 
-        visible={modalVisible} 
-        type={modalConfig.type} 
-        title={modalConfig.title} 
-        message={modalConfig.message} 
-        onClose={() => setModalVisible(false)} 
+      <StatusModal
+        visible={modalVisible}
+        type={modalConfig.type}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        onClose={() => setModalVisible(false)}
       />
     </SafeAreaView>
   );

@@ -4,11 +4,11 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
-  SafeAreaView,
   StatusBar,
   Platform,
   Linking
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useColorScheme } from 'nativewind';
 import {
@@ -25,6 +25,8 @@ import {
   Wrench,
   AlertCircle
 } from 'lucide-react-native';
+
+const PRIMARY_COLOR = '#2563EB';
 
 const TrackComplaint = () => {
   const navigation = useNavigation<any>();
@@ -62,13 +64,23 @@ const TrackComplaint = () => {
 
   const IconComponent = getCategoryIcon(complaint.title);
 
+  const getStatusColors = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'resolved': return { bg: 'bg-green-100 dark:bg-green-900/30', text: 'text-green-600 dark:text-green-400', color: '#16A34A' };
+      case 'in-progress': return { bg: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-600 dark:text-blue-400', color: '#2563EB' };
+      default: return { bg: 'bg-orange-100 dark:bg-orange-900/30', text: 'text-orange-600 dark:text-orange-400', color: '#EA580C' };
+    }
+  };
+
+  const statusStyle = getStatusColors(complaint.status);
+
   return (
     <SafeAreaView className="flex-1 bg-white dark:bg-zinc-950">
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
-      
+
       {/* Header */}
       <View className="flex-row items-center px-6 py-4 border-b border-gray-50 dark:border-zinc-900">
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={() => navigation.goBack()}
           className="w-10 h-10 items-center justify-center -ml-2"
         >
@@ -82,36 +94,38 @@ const TrackComplaint = () => {
         <View className="flex-row items-center justify-between mb-4">
           <View className="flex-row items-center">
             <View className="w-16 h-16 bg-gray-50 dark:bg-zinc-900 rounded-2xl items-center justify-center border border-gray-100 dark:border-zinc-800">
-              <IconComponent size={32} color="#EF4444" />
+              <IconComponent size={32} color={PRIMARY_COLOR} />
             </View>
             <View className="ml-4">
               <Text className="text-xl font-satoshi-bold text-gray-900 dark:text-zinc-50">{complaint.title}</Text>
               <Text className="text-sm font-satoshi-medium text-gray-400 dark:text-zinc-500">{complaint.id}</Text>
             </View>
           </View>
-          <View className="bg-red-500 px-4 py-1.5 rounded-xl">
-            <Text className="text-white text-[12px] font-satoshi-bold uppercase tracking-wider">Active</Text>
+          <View className={`${statusStyle.bg} px-4 py-1.5 rounded-xl`}>
+            <Text className={`${statusStyle.text} text-[12px] font-satoshi-bold uppercase tracking-wider`}>
+              {complaint.status === 'in-progress' ? 'Active' : complaint.status}
+            </Text>
           </View>
         </View>
 
-        <Text className="text-[#EF4444] text-[15px] font-satoshi-medium mb-6">
+        <Text className="text-gray-600 dark:text-zinc-400 text-[15px] font-satoshi-medium mb-6">
           {complaint.description}
         </Text>
 
         {/* Details Highlight Card */}
-        <View className="bg-red-50 dark:bg-red-950/20 p-6 rounded-[32px] mb-8 border border-red-100 dark:border-red-900/30">
+        <View className="bg-blue-50 dark:bg-blue-950/20 p-6 rounded-[32px] mb-8 border border-blue-100 dark:border-blue-900/30">
           <View className="flex-row items-center mb-4">
-            <Calendar size={18} color="#EF4444" />
+            <Calendar size={18} color={PRIMARY_COLOR} />
             <Text className="ml-3 text-gray-700 dark:text-zinc-200 font-satoshi-medium">
               Complain raised on <Text className="font-satoshi-bold">{complaint.raisedOn}</Text>
             </Text>
           </View>
           <View className="flex-row items-center mb-4">
-            <Clock size={18} color="#EF4444" />
+            <Clock size={18} color={PRIMARY_COLOR} />
             <Text className="ml-3 text-gray-700 dark:text-zinc-200 font-satoshi-bold">{complaint.raisedAt}</Text>
           </View>
           <View className="flex-row items-center">
-            <User size={18} color="#EF4444" />
+            <User size={18} color={PRIMARY_COLOR} />
             <Text className="ml-3 text-gray-700 dark:text-zinc-200 font-satoshi-medium">
               Raised by <Text className="font-satoshi-bold">{complaint.raisedBy}</Text>
             </Text>
@@ -150,22 +164,6 @@ const TrackComplaint = () => {
 
         <View className="h-10" />
       </ScrollView>
-
-      {/* Bottom Buttons */}
-      <View className="flex-row px-6 py-6 border-t border-gray-50 dark:border-zinc-900 gap-x-4">
-        <TouchableOpacity 
-          onPress={() => navigation.goBack()}
-          className="flex-1 h-14 rounded-full border border-[#EF4444] items-center justify-center"
-        >
-          <Text className="text-[#EF4444] text-base font-satoshi-bold">Go Back</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          onPress={() => Linking.openURL('tel:1234567890')}
-          className="flex-1 h-14 rounded-full bg-[#EF4444] items-center justify-center shadow-lg shadow-red-200 dark:shadow-none"
-        >
-          <Text className="text-white text-base font-satoshi-bold">Call Manager</Text>
-        </TouchableOpacity>
-      </View>
     </SafeAreaView>
   );
 };

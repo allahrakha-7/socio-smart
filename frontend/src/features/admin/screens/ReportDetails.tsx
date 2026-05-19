@@ -78,8 +78,8 @@ const ReportDetails = ({ navigation }: any) => {
       <SafeAreaView className="flex-1 bg-white dark:bg-zinc-950 items-center justify-center">
         <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={colorScheme === 'dark' ? '#09090b' : "#FFFFFF"} />
         <View style={{ flex: 1, minHeight: 400, justifyContent: "center", alignItems: "center" }}>
-  <ActivityIndicator size="large" color="#2563EB" />
-</View>
+          <ActivityIndicator size="large" color="#2563EB" />
+        </View>
         <Text className="mt-4 text-gray-400 dark:text-zinc-500 font-satoshi-medium">Compiling dynamic summary...</Text>
       </SafeAreaView>
     );
@@ -102,17 +102,14 @@ const ReportDetails = ({ navigation }: any) => {
           </TouchableOpacity>
           <Text className="text-[20px] font-satoshi-bold text-gray-900 dark:text-zinc-50">Report Details</Text>
         </View>
-        <TouchableOpacity activeOpacity={0.7} className="w-10 h-10 items-center justify-center rounded-xl bg-gray-50 dark:bg-zinc-800 border border-gray-100 dark:border-zinc-700">
-          <MoreHorizontal size={20} color={colorScheme === 'dark' ? '#71717A' : '#64748B'} />
-        </TouchableOpacity>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        <View className="px-5 mt-2">
+        <View className="px-4 mt-2">
           {/* Main Info Card */}
-          <View className="bg-white dark:bg-zinc-900 rounded-[32px] p-5 mb-6 shadow-sm border border-gray-100 dark:border-zinc-800">
+          <View className="bg-white dark:bg-zinc-900 rounded-lg p-5 mb-6 shadow-sm border border-gray-100 dark:border-zinc-800">
             <View className="flex-row items-start mb-4">
-              <View className="w-12 h-12 bg-blue-50 dark:bg-blue-900/30 rounded-2xl items-center justify-center mr-4 border border-blue-100 dark:border-blue-900/20">
+              <View className="w-12 h-12 bg-blue-50 dark:bg-blue-900/30 rounded-full items-center justify-center mr-4 border border-blue-100 dark:border-blue-900/20">
                 <FileText size={24} color="#2563EB" />
               </View>
               <View className="flex-1">
@@ -142,27 +139,27 @@ const ReportDetails = ({ navigation }: any) => {
           </View>
 
           {/* Key Metrics Grid */}
-          <Text className="text-gray-900 dark:text-zinc-50 font-satoshi-bold text-lg mb-4">Key Metrics</Text>
+          <Text className="text-gray-900 dark:text-zinc-50 font-satoshi-bold text-xl mb-4">Key Metrics</Text>
           <View className="flex-row flex-wrap justify-between mb-6">
-            <View className="bg-white dark:bg-zinc-900 w-[48%] rounded-[24px] p-4 mb-4 shadow-sm border border-gray-100 dark:border-zinc-800">
-              <View className="w-8 h-8 rounded-full bg-green-50 dark:bg-green-900/30 items-center justify-center mb-2">
-                <TrendingUp size={16} color="#16A34A" />
+            <View className="bg-white dark:bg-zinc-900 w-[48%] rounded-lg p-4 mb-4 shadow-sm border border-gray-100 dark:border-zinc-800">
+              <View className="w-8 h-8 items-center justify-center mb-2">
+                <TrendingUp size={18} color="#16A34A" />
               </View>
               <Text className="text-gray-500 dark:text-zinc-500 text-[10px] font-satoshi-bold uppercase mb-1 tracking-widest">Revenue</Text>
               <Text className="text-gray-900 dark:text-zinc-50 text-xl font-satoshi-bold">{report.metrics.revenue}</Text>
             </View>
 
-            <View className="bg-white dark:bg-zinc-900 w-[48%] rounded-[24px] p-4 mb-4 shadow-sm border border-gray-100 dark:border-zinc-800">
-              <View className="w-8 h-8 rounded-full bg-red-50 dark:bg-red-900/30 items-center justify-center mb-2">
-                <TrendingDown size={16} color="#EF4444" />
+            <View className="bg-white dark:bg-zinc-900 w-[48%] rounded-lg p-4 mb-4 shadow-sm border border-gray-100 dark:border-zinc-800">
+              <View className="w-8 h-8 items-center justify-center mb-2">
+                <TrendingDown size={18} color="#EF4444" />
               </View>
               <Text className="text-gray-500 dark:text-zinc-500 text-[10px] font-satoshi-bold uppercase mb-1 tracking-widest">Expenses</Text>
               <Text className="text-gray-900 dark:text-zinc-50 text-xl font-satoshi-bold">{report.metrics.expenses}</Text>
             </View>
 
-            <View className="bg-white dark:bg-zinc-900 w-[48%] rounded-[24px] p-4 shadow-sm border border-gray-100 dark:border-zinc-800">
-              <View className="w-8 h-8 rounded-full bg-orange-50 dark:bg-orange-900/30 items-center justify-center mb-2">
-                <AlertOctagon size={16} color="#EA580C" />
+            <View className="bg-white dark:bg-zinc-900 w-[48%] rounded-lg p-4 shadow-sm border border-gray-100 dark:border-zinc-800">
+              <View className="w-8 h-8 items-center justify-center mb-2">
+                <AlertOctagon size={18} color="#EA580C" />
               </View>
               <Text className="text-gray-500 dark:text-zinc-500 text-[10px] font-satoshi-bold uppercase mb-1 tracking-widest">Complaints</Text>
               <Text className="text-gray-900 dark:text-zinc-50 text-xl font-satoshi-bold">
@@ -170,19 +167,19 @@ const ReportDetails = ({ navigation }: any) => {
               </Text>
             </View>
 
-            <View className="bg-white dark:bg-zinc-900 w-[48%] rounded-[24px] p-4 shadow-sm border border-gray-100 dark:border-zinc-800">
-              <View className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/30 items-center justify-center mb-2">
-                <ShieldCheck size={16} color="#2563EB" />
+            <View className="bg-white dark:bg-zinc-900 w-[48%] rounded-lg p-4 shadow-sm border border-gray-100 dark:border-zinc-800">
+              <View className="w-8 h-8 items-center justify-center mb-2">
+                <ShieldCheck size={18} color="#2563EB" />
               </View>
               <Text className="text-gray-500 dark:text-zinc-500 text-[10px] font-satoshi-bold uppercase mb-1 tracking-widest">Resolved</Text>
               <Text className="text-gray-900 dark:text-zinc-50 text-xl font-satoshi-bold">
                 {report.metrics.resolved} <Text className="text-sm font-satoshi-medium text-gray-400 dark:text-zinc-600 lowercase">fixed</Text>
               </Text>
             </View>
-            
-            <View className="bg-white dark:bg-zinc-900 w-[48%] mt-4 rounded-[24px] p-4 shadow-sm border border-gray-100 dark:border-zinc-800">
-              <View className="w-8 h-8 rounded-full bg-purple-50 dark:bg-purple-900/30 items-center justify-center mb-2">
-                <Car size={16} color="#9333EA" />
+
+            <View className="bg-white dark:bg-zinc-900 w-[48%] mt-4 rounded-lg p-4 shadow-sm border border-gray-100 dark:border-zinc-800">
+              <View className="w-8 h-8 items-center justify-center mb-2">
+                <Car size={18} color="#9333EA" />
               </View>
               <Text className="text-gray-500 dark:text-zinc-500 text-[10px] font-satoshi-bold uppercase mb-1 tracking-widest">Gate Log Audit</Text>
               <Text className="text-gray-900 dark:text-zinc-50 text-xl font-satoshi-bold">
@@ -190,9 +187,9 @@ const ReportDetails = ({ navigation }: any) => {
               </Text>
             </View>
 
-            <View className="bg-white dark:bg-zinc-900 w-[48%] mt-4 rounded-[24px] p-4 shadow-sm border border-gray-100 dark:border-zinc-800">
-              <View className="w-8 h-8 rounded-full bg-red-50 dark:bg-red-900/30 items-center justify-center mb-2">
-                <BellRing size={16} color="#EF4444" />
+            <View className="bg-white dark:bg-zinc-900 w-[48%] mt-4 rounded-lg p-4 shadow-sm border border-gray-100 dark:border-zinc-800">
+              <View className="w-8 h-8 items-center justify-center mb-2">
+                <BellRing size={18} color="#EF4444" />
               </View>
               <Text className="text-gray-500 dark:text-zinc-500 text-[10px] font-satoshi-bold uppercase mb-1 tracking-widest">SOS Triggers</Text>
               <Text className="text-gray-900 dark:text-zinc-50 text-xl font-satoshi-bold">
@@ -202,7 +199,7 @@ const ReportDetails = ({ navigation }: any) => {
           </View>
 
           {/* Expense Breakdown */}
-          <Text className="text-gray-900 dark:text-zinc-50 font-satoshi-bold text-lg mb-4">Expense Breakdown</Text>
+          <Text className="text-gray-900 dark:text-zinc-50 font-satoshi-bold text-xl mb-4">Expense Breakdown</Text>
           <View className="bg-white dark:bg-zinc-900 rounded-[32px] p-6 shadow-sm border border-gray-100 dark:border-zinc-800 mb-6">
             {report.expenseBreakdown.map((item: any, index: number) => {
               const config = CATEGORY_MAP[item.category] || { icon: Activity, color: '#10B981' };
@@ -260,7 +257,7 @@ const ReportDetails = ({ navigation }: any) => {
         <TouchableOpacity
           onPress={() => handleAction('Download PDF')}
           activeOpacity={0.85}
-          className="bg-[#2563EB] flex-row items-center justify-center py-4 rounded-2xl shadow-lg shadow-blue-600/30"
+          className="bg-[#2563EB] flex-row items-center justify-center py-4 rounded-full shadow-lg shadow-blue-600/30"
         >
           <Download size={20} color="white" />
           <Text className="text-white text-base font-satoshi-bold ml-2 tracking-widest uppercase">Download PDF</Text>

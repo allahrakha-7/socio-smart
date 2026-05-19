@@ -77,7 +77,13 @@ const NoticeBoard = () => {
         setRole(r);
 
         const response = await api.get('/api/notices');
-        setNotices(Array.isArray(response.data) ? response.data : []);
+        const data = Array.isArray(response.data) ? response.data : [];
+        setNotices(data);
+
+        if (data.length > 0) {
+          const newestTime = new Date(data[0].createdAt || data[0].publishDate).getTime();
+          await AsyncStorage.setItem('@sociosmart/last_seen_notices_timestamp', String(newestTime));
+        }
       } catch (error) {
         setNotices([]);
       } finally {
@@ -92,7 +98,12 @@ const NoticeBoard = () => {
     setIsRefreshing(true);
     try {
       const response = await api.get('/api/notices');
-      setNotices(response.data);
+      const data = Array.isArray(response.data) ? response.data : [];
+      setNotices(data);
+      if (data.length > 0) {
+        const newestTime = new Date(data[0].createdAt || data[0].publishDate).getTime();
+        await AsyncStorage.setItem('@sociosmart/last_seen_notices_timestamp', String(newestTime));
+      }
     } catch {
       setNotices([]);
     } finally {
@@ -196,11 +207,11 @@ const NoticeBoard = () => {
 
           {role === 'admin' && (
             <View className="flex-row items-center">
-              <TouchableOpacity onPress={() => openEditModal(item)} className="w-9 h-9 bg-gray-50 dark:bg-zinc-800 rounded-full items-center justify-center border border-gray-100 dark:border-zinc-700 mr-2">
+              <TouchableOpacity onPress={() => openEditModal(item)} className="w-9 h-9 items-center justify-center mr-2">
                 <Pencil size={14} color={colorScheme === 'dark' ? '#F4F4F5' : "#111827"} />
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => deleteNotice(item)} className="w-9 h-9 bg-red-50 dark:bg-red-900/30 rounded-full items-center justify-center border border-red-100 dark:border-red-900/40">
-                <Trash2 size={14} color="#EF4444" />
+              <TouchableOpacity onPress={() => deleteNotice(item)} className="w-9 h-9 items-center justify-center">
+                <Trash2 size={15} color="#EF4444" />
               </TouchableOpacity>
             </View>
           )}

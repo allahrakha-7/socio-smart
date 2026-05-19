@@ -70,14 +70,13 @@ const Payments = ({ navigation }: any) => {
     fetchPayments();
   }, [fetchPayments]);
 
-  const toggleStatus = async (payment: BillingRecord) => {
-    if (role !== 'admin') {
-      setSelectedBill(payment);
-      setProofVia(payment.paymentMethod || '');
-      setProofId(payment.receiptId || '');
-      return;
-    }
+  const handleItemClick = (payment: BillingRecord) => {
+    setSelectedBill(payment);
+    setProofVia(payment.paymentMethod || '');
+    setProofId(payment.receiptId || '');
+  };
 
+  const toggleStatus = async (payment: BillingRecord) => {
     const newStatus = payment.status === 'paid' ? 'due' : 'paid';
     try {
       const baseUrl = getApiBaseUrl();
@@ -90,7 +89,7 @@ const Payments = ({ navigation }: any) => {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${parsed.token}`
         },
-        body: JSON.stringify({ status: newStatus, paymentMethod: 'Cash' })
+        body: JSON.stringify({ status: newStatus, paymentMethod: payment.paymentMethod || 'Cash' })
       });
 
       if (response.ok) {
@@ -231,7 +230,7 @@ const Payments = ({ navigation }: any) => {
                 <View className="flex-row justify-between items-center mb-6">
                   <View>
                     <Text className="text-zinc-500 font-satoshi-bold text-xs uppercase tracking-widest mb-1">Total Revenue (This Month)</Text>
-                    <Text className="text-white font-satoshi-black text-3xl">��� {stats.totalCollected.toLocaleString()}</Text>
+                    <Text className="text-white font-satoshi-black text-3xl">Rs. {stats.totalCollected.toLocaleString()}</Text>
                   </View>
                   <View className="w-12 h-12 bg-white/10 rounded-2xl items-center justify-center">
                     <Activity size={24} color="white" />
@@ -240,7 +239,7 @@ const Payments = ({ navigation }: any) => {
                 <View className="flex-row items-center pt-6 border-t border-white/10 uppercase tracking-tighter">
                   <View className="flex-1">
                     <Text className="text-zinc-500 font-satoshi-bold text-[9px] mb-1">Pending Amount</Text>
-                    <Text className="text-red-400 font-satoshi-bold text-base italic">��� {stats.totalOutstanding.toLocaleString()}</Text>
+                    <Text className="text-red-400 font-satoshi-bold text-base italic">Rs. {stats.totalOutstanding.toLocaleString()}</Text>
                   </View>
                   <TouchableOpacity
                     className="bg-blue-600 px-6 py-2.5 rounded-2xl"
@@ -257,7 +256,7 @@ const Payments = ({ navigation }: any) => {
               <View className="flex-row justify-between items-start mb-10">
                 <View>
                   <Text className="text-blue-100 font-satoshi-bold text-xs uppercase tracking-widest mb-1">Outstanding Balance</Text>
-                  <Text className="text-white font-satoshi-black text-4xl">��� {stats.totalOutstanding.toLocaleString()}</Text>
+                  <Text className="text-white font-satoshi-black text-4xl">Rs. {stats.totalOutstanding.toLocaleString()}</Text>
                 </View>
                 <View className="w-12 h-12 bg-white/20 rounded-2xl items-center justify-center">
                   <Wallet size={24} color="white" />
@@ -319,11 +318,17 @@ const Payments = ({ navigation }: any) => {
             {role === 'admin' ? 'Resident Ledgers' : 'Billing Ledger'}
           </Text>
 
-          {filteredPayments.map((item) => (
-            <TouchableOpacity
+          {loading ? (
+            <View className="py-20 items-center justify-center">
+              <ActivityIndicator size="large" color="#2563EB" />
+            </View>
+          ) : (
+            <>
+              {filteredPayments.map((item) => (
+                <TouchableOpacity
               key={item._id}
               activeOpacity={0.8}
-              onPress={() => toggleStatus(item)}
+              onPress={() => handleItemClick(item)}
               className="bg-white dark:bg-zinc-900 rounded-lg p-5 mb-4 border border-gray-100 dark:border-zinc-800 shadow-sm"
             >
               <View className="flex-row items-center">
@@ -350,7 +355,7 @@ const Payments = ({ navigation }: any) => {
                 </View>
 
                 <View className="items-end">
-                  <Text className="text-gray-900 dark:text-zinc-50 font-satoshi-black text-base">��� {item.amount.toLocaleString()}</Text>
+                  <Text className="text-gray-900 dark:text-zinc-50 font-satoshi-black text-base">Rs. {item.amount.toLocaleString()}</Text>
                   <View className="mt-2">
                     {renderStatusBadge(item.status)}
                   </View>
@@ -364,6 +369,8 @@ const Payments = ({ navigation }: any) => {
               <Receipt size={40} color="#CBD5E1" />
               <Text className="mt-4 text-gray-400 font-satoshi-medium">No ledger records found</Text>
             </View>
+          )}
+            </>
           )}
         </View>
       </ScrollView>
@@ -389,7 +396,7 @@ const Payments = ({ navigation }: any) => {
               <View className="mb-4">
                 {renderStatusBadge(selectedBill?.status || 'due')}
               </View>
-              <Text className="text-gray-900 dark:text-zinc-50 font-satoshi-black text-5xl">��� {selectedBill?.amount?.toLocaleString()}</Text>
+              <Text className="text-gray-900 dark:text-zinc-50 font-satoshi-black text-5xl">Rs. {selectedBill?.amount?.toLocaleString()}</Text>
               <Text className="text-gray-400 font-satoshi-medium mt-2">{selectedBill?.title}</Text>
             </View>
 
@@ -398,12 +405,12 @@ const Payments = ({ navigation }: any) => {
               {selectedBill?.breakdown?.map((item, idx) => (
                 <View key={idx} className="flex-row justify-between items-center mb-3">
                   <Text className="text-gray-600 dark:text-zinc-400 font-satoshi-medium text-sm">{item.label}</Text>
-                  <Text className="text-gray-900 dark:text-zinc-100 font-satoshi-bold text-sm">��� {item.amount.toLocaleString()}</Text>
+                  <Text className="text-gray-900 dark:text-zinc-100 font-satoshi-bold text-sm">Rs. {item.amount.toLocaleString()}</Text>
                 </View>
               ))}
               <View className="mt-4 pt-4 border-t border-gray-200 dark:border-zinc-800 flex-row justify-between items-center">
                 <Text className="text-gray-900 dark:text-zinc-50 font-satoshi-black text-base">Total Charge</Text>
-                <Text className="text-blue-600 font-satoshi-black text-base">��� {selectedBill?.amount?.toLocaleString()}</Text>
+                <Text className="text-blue-600 font-satoshi-black text-base">Rs. {selectedBill?.amount?.toLocaleString()}</Text>
               </View>
             </View>
 

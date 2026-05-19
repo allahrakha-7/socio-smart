@@ -190,18 +190,42 @@ const Amenities = () => {
   };
 
   const amenityCards = useMemo(() => {
-    return amenityData.filter(a => a.name.toLowerCase().includes(searchQuery.toLowerCase())).map((item, idx) => (
-      <Pressable key={idx} onPress={() => setSelectedAmenity(item)} className="active:opacity-60 flex-row items-center p-4 mb-2">
-        <View className="w-16 h-16 rounded-2xl overflow-hidden bg-gray-100 dark:bg-zinc-800"><Image source={{ uri: item.thumbnail }} className="w-full h-full" resizeMode="cover" /></View>
-        <View className="flex-1 ml-4 pr-2">
-          <Text className="text-[17px] font-satoshi-black text-gray-900 dark:text-zinc-50">{item.name}</Text>
-          <View className="flex-row items-center mt-0.5"><Text className="text-gray-400 font-satoshi-medium text-sm">{item.price}</Text>
-            {item.status !== 'available' && (<View className="ml-3 px-2 py-0.5 bg-amber-50 rounded-md border border-amber-100"><Text className="text-[9px] font-satoshi-black text-amber-700 uppercase">{item.status}</Text></View>)}
-          </View>
-        </View>
-        <ChevronRight size={20} color="#CBD5E1" />
-      </Pressable>
-    ));
+    return (
+      <View className="flex-row flex-wrap justify-between px-2">
+        {amenityData.filter(a => a.name.toLowerCase().includes(searchQuery.toLowerCase())).map((item, idx) => (
+          <TouchableOpacity
+            key={idx}
+            activeOpacity={0.9}
+            onPress={() => setSelectedAmenity(item)}
+            className="w-[48%] bg-white dark:bg-zinc-900 rounded-[32px] overflow-hidden border border-gray-100 dark:border-zinc-800 shadow-sm mb-5"
+          >
+            <View className="h-32 w-full relative">
+              <Image 
+                source={item.thumbnail as any} 
+                className="w-full h-full"
+                resizeMode="cover"
+              />
+              {item.status !== 'available' && (
+                <View className="absolute top-3 right-3 px-2 py-1 bg-black/60 rounded-lg">
+                  <Text className="text-[8px] font-satoshi-black text-white uppercase">{item.status}</Text>
+                </View>
+              )}
+            </View>
+            <View className="p-4">
+              <Text className="text-gray-900 dark:text-zinc-50 font-satoshi-black text-sm" numberOfLines={1}>{item.name}</Text>
+              <Text className="text-gray-400 dark:text-zinc-500 font-satoshi-bold text-[9px] mt-1 uppercase tracking-widest">{item.location.split(',')[0]}</Text>
+              
+              <View className="flex-row items-center justify-between mt-3">
+                <Text className="text-blue-600 dark:text-blue-400 font-satoshi-black text-xs">{item.price}</Text>
+                <View className="bg-blue-50 dark:bg-blue-900/20 px-2.5 py-1.5 rounded-xl">
+                   <Plus size={12} color="#2563EB" strokeWidth={3} />
+                </View>
+              </View>
+            </View>
+          </TouchableOpacity>
+        ))}
+      </View>
+    );
   }, [amenityData, searchQuery]);
 
   return (

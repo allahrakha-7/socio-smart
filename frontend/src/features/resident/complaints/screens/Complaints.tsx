@@ -248,7 +248,7 @@ const Complaints = ({ navigation, route }: any) => {
         >
           <ArrowLeft size={22} color={colorScheme === 'dark' ? '#F4F4F5' : "#111827"} />
         </TouchableOpacity>
-        <Text className="text-xl font-satoshi-black text-gray-900 dark:text-zinc-50 tracking-tight">Complaints</Text>
+        <Text className="text-[22px] font-satoshi-bold text-gray-900 dark:text-zinc-50 tracking-tight">Complaints</Text>
         <TouchableOpacity
           onPress={openCreate}
           activeOpacity={0.85}
@@ -268,7 +268,7 @@ const Complaints = ({ navigation, route }: any) => {
                 key={key}
                 activeOpacity={0.85}
                 onPress={() => setActiveFilter(key)}
-                className={`flex-1 py-3 rounded-2xl items-center ${isActive ? 'bg-blue-600' : ''}`}
+                className={`flex-1 py-3 rounded-full items-center ${isActive ? 'bg-blue-600' : ''}`}
               >
                 <Text className={`text-[10px] font-satoshi-black uppercase tracking-widest ${isActive ? 'text-white' : 'text-gray-400 dark:text-zinc-500'}`}>{label}</Text>
               </TouchableOpacity>
@@ -280,17 +280,17 @@ const Complaints = ({ navigation, route }: any) => {
       {isLoading ? (
         <View className="flex-1 items-center justify-center">
           <View style={{ flex: 1, minHeight: 400, justifyContent: "center", alignItems: "center" }}>
-  <ActivityIndicator size="large" color={PRIMARY_COLOR} />
-</View>
+            <ActivityIndicator size="large" color={PRIMARY_COLOR} />
+          </View>
         </View>
       ) : (
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
           <View className="px-5 pt-4">
             {filteredComplaints.map((item) => (
-              <TouchableOpacity 
-                key={item._id} 
+              <TouchableOpacity
+                key={item._id}
                 activeOpacity={0.9}
-                onPress={() => navigation.navigate('TrackComplaint', { 
+                onPress={() => navigation.navigate('TrackComplaint', {
                   complaint: {
                     id: `#${item._id.slice(-6).toUpperCase()}`,
                     title: item.title,
@@ -306,7 +306,7 @@ const Complaints = ({ navigation, route }: any) => {
                       { id: 3, title: 'Addressed to respective team', subtitle: item.status === 'in-progress' || item.status === 'resolved' ? 'Assigned and Active' : 'Awaiting Assignment', completed: item.status === 'in-progress' || item.status === 'resolved' },
                       { id: 4, title: 'Resolved', subtitle: item.status === 'resolved' ? 'Issue Fixed' : 'Pending Completion', completed: item.status === 'resolved' },
                     ]
-                  } 
+                  }
                 })}
                 className="bg-white dark:bg-zinc-900 rounded-[32px] border border-gray-100 dark:border-zinc-800 p-6 mb-5 shadow-sm"
               >

@@ -3,6 +3,7 @@ import Resident from '../models/residentModel.js';
 import GateActivity from '../models/gateActivityModel.js';
 import mqttService from '../utils/mqttService.js';
 import crypto from 'crypto';
+import { triggerSystemNotification } from './notificationController.js';
 
 // Resident creates a pre-approval
 export const createPreApproval = async (req, res) => {
@@ -135,6 +136,14 @@ export const requestAdhocEntry = async (req, res) => {
         gate: 'Main Security Gate'
       });
     }
+
+    await triggerSystemNotification({
+      recipient: resident_id,
+      title: 'Visitor Entry Request',
+      message: `${name} (${type}) is requesting entry to your flat at Main Security Gate. Please approve/deny.`,
+      category: 'Visitor',
+      io
+    });
 
     res.status(201).json(visitor);
   } catch (error) {

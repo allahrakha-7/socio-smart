@@ -10,6 +10,12 @@ export const createAnnouncement = async (req, res) => {
       image,
       createdBy: req.user.id
     });
+
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('new_announcement', announcement);
+    }
+
     res.status(201).json(announcement);
   } catch (error) {
     res.status(500).json({ message: error.message });

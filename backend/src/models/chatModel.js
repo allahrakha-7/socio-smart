@@ -38,7 +38,15 @@ const chatSchema = new mongoose.Schema(
     isPrivate: {
       type: Boolean,
       default: false
-    }
+    },
+    isDeleted: {
+      type: Boolean,
+      default: false
+    },
+    deletedFor: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User' // Using a generic ref or just the ID is fine
+    }]
   },
   { timestamps: true }
 );

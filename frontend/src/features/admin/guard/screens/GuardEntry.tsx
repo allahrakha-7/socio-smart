@@ -20,7 +20,7 @@ const PRIMARY_COLOR = '#2563EB';
 const SESSION_KEY = '@sociosmart/session_v1';
 
 
-import { getApiBaseUrl } from '../../../utils/apiConfig';
+import { getApiBaseUrl } from '../../../../utils/apiConfig';
 
 const GuardEntry = ({ navigation }: any) => {
   const { colorScheme } = useColorScheme();

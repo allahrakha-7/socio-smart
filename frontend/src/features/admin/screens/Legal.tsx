@@ -30,9 +30,9 @@ const LegalContent = ({ type }: { type: 'tos' | 'privacy' }) => {
                         Permission is granted to temporarily download one copy of the materials (information or software) on SocioSmart's application for personal, non-commercial transitory viewing only.
                     </Text>
                     <View className="mt-4 pl-4 border-l-2 border-blue-100 dark:border-blue-900/30">
-                        <Text className="text-[14px] font-satoshi-medium text-gray-500 dark:text-zinc-500 leading-5 mb-2">��� You may not modify or copy the materials.</Text>
-                        <Text className="text-[14px] font-satoshi-medium text-gray-500 dark:text-zinc-500 leading-5 mb-2">��� Use the materials for any commercial purpose.</Text>
-                        <Text className="text-[14px] font-satoshi-medium text-gray-500 dark:text-zinc-500 leading-5">��� Attempt to decompile or reverse engineer any software.</Text>
+                        <Text className="text-[14px] font-satoshi-medium text-gray-500 dark:text-zinc-500 leading-5 mb-2">• You may not modify or copy the materials.</Text>
+                        <Text className="text-[14px] font-satoshi-medium text-gray-500 dark:text-zinc-500 leading-5 mb-2">• Use the materials for any commercial purpose.</Text>
+                        <Text className="text-[14px] font-satoshi-medium text-gray-500 dark:text-zinc-500 leading-5">• Attempt to decompile or reverse engineer any software.</Text>
                     </View>
                 </View>
 
@@ -85,9 +85,9 @@ const LegalContent = ({ type }: { type: 'tos' | 'privacy' }) => {
                     We use information that we collect about you or that you provide to us to:
                 </Text>
                 <View className="mt-3 space-y-2">
-                    <Text className="text-gray-600 dark:text-zinc-400 text-sm">��� Validate society membership and access.</Text>
-                    <Text className="text-gray-600 dark:text-zinc-400 text-sm">��� Provide real-time security alerts and notifications.</Text>
-                    <Text className="text-gray-600 dark:text-zinc-400 text-sm">��� Facilitate community interaction and billing.</Text>
+                    <Text className="text-gray-600 dark:text-zinc-400 text-sm">• Validate society membership and access.</Text>
+                    <Text className="text-gray-600 dark:text-zinc-400 text-sm">• Provide real-time security alerts and notifications.</Text>
+                    <Text className="text-gray-600 dark:text-zinc-400 text-sm">• Facilitate community interaction and billing.</Text>
                 </View>
             </View>
 
@@ -180,7 +180,7 @@ const Legal = () => {
                             Last Updated: April 15, 2026
                         </Text>
                         <Text className="text-xs font-satoshi-medium text-gray-400 dark:text-zinc-500 text-center mt-1">
-                            SocioSmart v1.2.0 ��� �� 2026 SocioSmart Inc.
+                            SocioSmart v1.2.0 • © 2026 SocioSmart Inc.
                         </Text>
                     </View>
                 </View>

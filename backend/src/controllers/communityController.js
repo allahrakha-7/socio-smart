@@ -29,6 +29,15 @@ export const createPost = async (req, res) => {
       imageUrl = uploadRes.secure_url;
     }
 
+    let fileData = file;
+    if (file && file.url && file.url.startsWith('data:')) {
+      const uploadRes = await cloudinary.uploader.upload(file.url, {
+        folder: 'Community_Files',
+        resource_type: 'raw',
+      });
+      fileData = { ...file, url: uploadRes.secure_url };
+    }
+
     const post = await Post.create({
       user: req.user.id,
       content,
@@ -36,7 +45,7 @@ export const createPost = async (req, res) => {
       type: type || 'text',
       poll,
       event,
-      file
+      file: fileData
     });
     const populated = await Post.findById(post._id)
       .populate('user', 'full_name house_number role profile_image');
@@ -79,6 +88,14 @@ export const editPost = async (req, res) => {
         folder: 'Community_Posts',
       });
       post.image = uploadRes.secure_url;
+    }
+
+    if (req.body.file && req.body.file.url && req.body.file.url.startsWith('data:')) {
+      const uploadRes = await cloudinary.uploader.upload(req.body.file.url, {
+        folder: 'Community_Files',
+        resource_type: 'raw',
+      });
+      post.file = { ...req.body.file, url: uploadRes.secure_url };
     }
 
     await post.save();
@@ -158,10 +175,9 @@ export const votePoll = async (req, res) => {
 // @route   GET /api/community/chats
 export const getChats = async (req, res) => {
   try {
-    // Filter to show public chats OR private chats where user is sender or receiver
+    // Strictly filter to ONLY show private chats where user is sender or receiver (like WhatsApp)
     const chats = await Chat.find({
       $or: [
-        { isPrivate: { $ne: true } },
         { sender: req.user.id },
         { receiver: req.user.id }
       ]

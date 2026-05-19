@@ -19,6 +19,7 @@ import {
   Unlock,
   Lock,
   WifiOff,
+  Wifi,
   Zap,
   Info,
   RotateCcw,
@@ -47,41 +48,59 @@ const GateOverride = ({ navigation }: any) => {
     }).start();
   }, [gateState]);
 
+  useEffect(() => {
+    const checkStatus = async () => {
+      try {
+        const baseUrl = getApiBaseUrl();
+        const rawSession = await AsyncStorage.getItem(SESSION_KEY);
+        const session = rawSession ? JSON.parse(rawSession) : null;
+        if (!session?.token) return;
+
+        const response = await fetch(`${baseUrl}/api/gate/stats`, {
+          headers: { Authorization: `Bearer ${session.token}` }
+        });
+        if (response.ok) {
+          setOfflineMode(false);
+        }
+      } catch (e) {
+        setOfflineMode(true);
+      }
+    };
+    checkStatus();
+  }, []);
+
   const handleActuate = async () => {
     const nextState = gateState === 'closed' ? 'open' : 'closed';
 
     setIsProcessing(true);
     try {
-      // 1. Backend Log for Audit (Manual Override)
       const baseUrl = getApiBaseUrl();
       const rawSession = await AsyncStorage.getItem(SESSION_KEY);
       const session = rawSession ? JSON.parse(rawSession) : null;
 
-      await fetch(`${baseUrl}/api/gate/entry`, {
+      const response = await fetch(`${baseUrl}/api/gate/manual-trigger`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session?.token}`
         },
         body: JSON.stringify({
-          name: 'MANUAL OVERRIDE',
-          type: 'Resident', // Placeholder for log structure
-          purpose: `Manual ${nextState.toUpperCase()} command issued by Guard`,
-          gate: 'Main Gate',
-          status: nextState === 'open' ? 'inside' : 'exited'
+          action: nextState.toUpperCase()
         })
       });
 
-      // 2. Simulate MQTT Delay
-      setTimeout(() => {
+      if (response.ok) {
         setGateState(nextState);
-        setIsProcessing(false);
-      }, 1000);
-
+        setOfflineMode(false);
+      } else {
+        const err = await response.json();
+        Alert.alert('Control Error', err.message || 'Failed to transmit override command.');
+      }
     } catch (error) {
       console.error('Override error:', error);
-      setIsProcessing(false);
       Alert.alert('System Error', 'Could not communicate with Gate Bridge. Check physical wiring.');
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -171,9 +190,11 @@ const GateOverride = ({ navigation }: any) => {
         <View className="gap-y-6">
           <View className="flex-row gap-x-4">
             <View className="flex-1 bg-zinc-900/80 border border-zinc-800 p-5 rounded-[28px]">
-              <WifiOff size={20} color="#71717A" />
+              {offlineMode ? <WifiOff size={20} color="#71717A" /> : <Wifi size={20} color="#10B981" />}
               <Text className="text-zinc-500 font-satoshi-bold text-[10px] uppercase tracking-widest mt-3 mb-1">Sync Status</Text>
-              <Text className="text-zinc-50 font-satoshi-bold">OFFLINE</Text>
+              <Text className={`font-satoshi-bold ${offlineMode ? 'text-zinc-50' : 'text-green-500'}`}>
+                {offlineMode ? 'OFFLINE' : 'ONLINE'}
+              </Text>
             </View>
             <View className="flex-1 bg-zinc-900/80 border border-zinc-800 p-5 rounded-[28px]">
               <Zap size={20} color="#2563EB" />

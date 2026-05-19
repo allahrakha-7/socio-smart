@@ -20,7 +20,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const PRIMARY_COLOR = '#2563EB';
 const SESSION_KEY = '@sociosmart/session_v1';
 
-import { getApiBaseUrl } from '../../../utils/apiConfig';
+import { getApiBaseUrl } from '../../../../utils/apiConfig';
 
 const SearchVehicle = ({ navigation }: any) => {
   const { colorScheme } = useColorScheme();

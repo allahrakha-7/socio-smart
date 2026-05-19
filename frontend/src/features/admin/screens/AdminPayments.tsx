@@ -5,7 +5,7 @@ import { ArrowLeft, Search, Filter, ReceiptText, CheckCircle, Clock, AlertOctago
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useColorScheme } from 'nativewind';
 
-import { getApiBaseUrl } from '../../utils/apiConfig';
+import { getApiBaseUrl } from '../../../utils/apiConfig';
 
 const SESSION_KEY = '@sociosmart/session_v1';
 

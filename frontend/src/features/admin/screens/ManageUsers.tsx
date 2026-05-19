@@ -13,6 +13,7 @@ import {
   Clock,
   Ban,
   Check,
+  ArrowLeft,
 } from 'lucide-react-native';
 import { RefreshControl, ActivityIndicator, Platform, NativeModules, StatusBar } from 'react-native';
 import { useColorScheme } from 'nativewind';
@@ -163,20 +164,22 @@ const ManageUsers = ({ navigation }: any) => {
           </View>
 
           <View className="flex-1">
-            <Text className="text-gray-900 dark:text-zinc-50 font-satoshi-bold text-base">{displayName}</Text>
-            <Text className="text-gray-500 dark:text-zinc-500 text-xs font-satoshi-medium mt-0.5">{displayRole} ��� {displayUnit}</Text>
+            <View className="flex-row items-center flex-wrap pr-2">
+              <Text className="text-gray-900 dark:text-zinc-50 font-satoshi-bold text-base mr-2">{displayName}</Text>
+              <View className={`px-2 py-0.5 rounded-full flex-row items-center mt-0.5 ${isPending ? 'bg-orange-100 dark:bg-orange-900/40' : isSuspended ? 'bg-red-100 dark:bg-red-900/40' : 'bg-green-100 dark:bg-green-900/40'}`}>
+                {isPending ? <Clock size={8} color="#EA580C" /> : isSuspended ? <XCircle size={8} color="#EF4444" /> : <CheckCircle size={8} color="#16A34A" />}
+                <Text className={`text-[8px] font-satoshi-bold ml-1 uppercase tracking-wider ${isPending ? 'text-orange-700' : isSuspended ? 'text-red-700' : 'text-green-700'}`}>
+                  {item.status}
+                </Text>
+              </View>
+            </View>
+            <Text className="text-gray-500 dark:text-zinc-500 text-xs font-satoshi-medium mt-0.5">{displayRole} • {displayUnit}</Text>
           </View>
 
-          <View className="items-end">
-            <View className={`px-2.5 py-1 rounded-full flex-row items-center mb-1 ${isPending ? 'bg-orange-100 dark:bg-orange-900/40' : isSuspended ? 'bg-red-100 dark:bg-red-900/40' : 'bg-green-100 dark:bg-green-900/40'}`}>
-              {isPending ? <Clock size={10} color="#EA580C" /> : isSuspended ? <XCircle size={10} color="#EF4444" /> : <CheckCircle size={10} color="#16A34A" />}
-              <Text className={`text-[9px] font-satoshi-bold ml-1 uppercase tracking-wider ${isPending ? 'text-orange-700' : isSuspended ? 'text-red-700' : 'text-green-700'}`}>
-                {item.status}
-              </Text>
-            </View>
+          <View className="items-end justify-center">
             <TouchableOpacity
               activeOpacity={0.7}
-              className="p-1"
+              className="p-2 -mr-2"
               onPress={() => setSelectedUser(item)}
             >
               <MoreVertical size={20} color={colorScheme === 'dark' ? '#52525B' : "#9CA3AF"} />
@@ -209,16 +212,16 @@ const ManageUsers = ({ navigation }: any) => {
 
     <SafeAreaView className="flex-1 bg-[#F8FAFC] dark:bg-zinc-950">
       <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={colorScheme === 'dark' ? '#09090b' : "#F8FAFC"} />
-      <View className="flex-row justify-between items-center px-6 py-4">
-
-        <View>
-
-          <Text className="text-2xl font-satoshi-bold text-gray-900 dark:text-zinc-50 tracking-tight">User Directory</Text>
-
-          <Text className="text-gray-500 dark:text-zinc-500 text-sm font-satoshi-medium mt-1">Manage residents & staff</Text>
-
+      <View className="flex-row items-center justify-between px-6 py-5 bg-white dark:bg-zinc-900 border-b border-gray-100 dark:border-zinc-800">
+        <View className="flex-row items-center">
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            className="w-10 h-10 items-center justify-center mr-4"
+          >
+            <ArrowLeft size={20} color={colorScheme === 'dark' ? '#F4F4F5' : '#64748B'} />
+          </TouchableOpacity>
+          <Text className="text-[20px] font-satoshi-bold text-gray-900 dark:text-zinc-50">User Directory</Text>
         </View>
-
       </View>
 
 
@@ -414,7 +417,7 @@ const ManageUsers = ({ navigation }: any) => {
                   </View>
                   <Text className="text-xl font-satoshi-bold text-gray-900 dark:text-zinc-50">{selectedUser?.full_name}</Text>
                   <Text className="text-sm font-satoshi-medium text-gray-500 dark:text-zinc-400 mt-1">
-                    {selectedUser?.role || selectedUser?.type} ��� {selectedUser?.house_number || selectedUser?.assigned_gate || 'N/A'}
+                    {selectedUser?.role || selectedUser?.type} • {selectedUser?.house_number || selectedUser?.assigned_gate || 'N/A'}
                   </Text>
                 </View>
 

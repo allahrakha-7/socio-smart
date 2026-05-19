@@ -17,14 +17,14 @@ import {
 } from 'react-native';
 import { useColorScheme } from 'nativewind';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChevronLeft, Plus, Search, Car, User, Trash2, X, Info, Camera } from 'lucide-react-native';
+import { ArrowLeft, ChevronLeft, Plus, Search, Car, User, Trash2, X, Info, Camera } from 'lucide-react-native';
 import ImagePicker from 'react-native-image-crop-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const PRIMARY_COLOR = '#2563EB';
 const SESSION_KEY = '@sociosmart/session_v1';
 
-import { getApiBaseUrl } from '../../../utils/apiConfig';
+import { getApiBaseUrl } from '../../../../utils/apiConfig';
 
 const VehicleRegistry = ({ navigation }: any) => {
   const { colorScheme } = useColorScheme();
@@ -213,7 +213,7 @@ const VehicleRegistry = ({ navigation }: any) => {
                   </View>
                 )}
               </View>
-              <Text className="text-gray-500 dark:text-zinc-500 text-xs font-satoshi-medium">{item.make_model} ��� {item.color} ��� Slot: {item.parking_slot}</Text>
+              <Text className="text-gray-500 dark:text-zinc-500 text-xs font-satoshi-medium">{item.make_model} • {item.color} • Slot: {item.parking_slot}</Text>
             </View>
           </View>
           <TouchableOpacity onPress={() => deleteVehicle(item._id)} className="w-10 h-10 bg-red-50 dark:bg-red-900/30 rounded-full items-center justify-center border border-red-100 dark:border-red-900/40">
@@ -225,7 +225,7 @@ const VehicleRegistry = ({ navigation }: any) => {
           <View className="flex-row items-center">
             <User size={14} color={colorScheme === 'dark' ? '#52525B' : "#9CA3AF"} />
             <Text className="ml-2 text-gray-600 dark:text-zinc-400 font-satoshi-bold text-xs">{item.owner?.full_name || 'System Admin'}</Text>
-            <Text className="ml-2 text-gray-400 dark:text-zinc-500 font-satoshi-medium text-xs">��� Unit: {item.owner?.house_number || 'N/A'}</Text>
+            <Text className="ml-2 text-gray-400 dark:text-zinc-500 font-satoshi-medium text-xs">• Unit: {item.owner?.house_number || 'N/A'}</Text>
           </View>
 
           {session?.role === 'admin' && isPending && (
@@ -253,17 +253,20 @@ const VehicleRegistry = ({ navigation }: any) => {
     <>
       <SafeAreaView className="flex-1 bg-offWhite dark:bg-zinc-950">
         <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={colorScheme === 'dark' ? '#09090b' : "#F8FAFC"} />
-        <View className="flex-row items-center justify-between px-6 py-4">
+        <View className="flex-row items-center justify-between px-6 py-5 bg-white dark:bg-zinc-900 border-b border-gray-100 dark:border-zinc-800">
           <View className="flex-row items-center">
-            <TouchableOpacity onPress={() => navigation.goBack()} activeOpacity={0.7} className="p-3 mr-4">
-              <ChevronLeft size={24} color={colorScheme === 'dark' ? '#F4F4F5' : "#111827"} />
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              className="w-10 h-10 items-center justify-center mr-4"
+            >
+              <ArrowLeft size={20} color={colorScheme === 'dark' ? '#F4F4F5' : '#64748B'} />
             </TouchableOpacity>
-            <Text className="text-2xl font-satoshi-bold text-gray-900 dark:text-zinc-50 tracking-tight">Vehicle Registry</Text>
+            <Text className="text-[20px] font-satoshi-bold text-gray-900 dark:text-zinc-50">Vehicle Registry</Text>
           </View>
         </View>
 
         <View className="px-6">
-          <View className="flex-row items-center bg-white dark:bg-zinc-900 rounded-full px-5 py-1.5 border border-gray-100 dark:border-zinc-800 shadow-sm">
+          <View className="flex-row items-center bg-white dark:bg-zinc-900 rounded-full px-5 py-1.5 border border-gray-100 dark:border-zinc-800 shadow-sm mt-4">
             <Search size={20} color={colorScheme === 'dark' ? '#71717A' : "#9CA3AF"} />
             <TextInput
               placeholder="Search by number plate or owner..."

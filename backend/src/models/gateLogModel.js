@@ -53,6 +53,9 @@ const gateLogSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    plate_image: {
+      type: String,
+    },
   },
   { timestamps: true }
 );

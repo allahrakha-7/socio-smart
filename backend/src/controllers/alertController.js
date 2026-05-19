@@ -2,6 +2,7 @@ import Alert from '../models/alertModel.js';
 import Resident from '../models/residentModel.js';
 import mqttService from '../utils/mqttService.js';
 import { getCurrentGuardObj } from './rosterController.js';
+import { triggerSystemNotification } from './notificationController.js';
 
 export const triggerSOS = async (req, res) => {
   try {
@@ -48,6 +49,14 @@ export const triggerSOS = async (req, res) => {
 
     // 2. Trigger Physical IoT Siren/Buzzer via MQTT
     mqttService.publishSirenCommand('ON');
+
+    await triggerSystemNotification({
+      recipient: null,
+      title: 'EMERGENCY SOS ALERT',
+      message: `Emergency SOS panic signal triggered at Unit ${alert.location} by ${resident.full_name}! Please respond immediately.`,
+      category: 'SOS',
+      io
+    });
 
     res.status(201).json(alert);
   } catch (error) {

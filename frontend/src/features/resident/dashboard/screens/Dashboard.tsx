@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Text, View, TouchableOpacity, ScrollView, StyleSheet, StatusBar, Animated, Modal, ActivityIndicator, Alert } from 'react-native';
+import { Text, View, TouchableOpacity, ScrollView, StyleSheet, StatusBar, Animated, Modal, ActivityIndicator, Alert, Image } from 'react-native';
 import { io } from 'socket.io-client';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -7,8 +7,10 @@ import { useColorScheme } from 'nativewind';
 import { getApiBaseUrl, default as api } from '../../../../utils/apiConfig';
 import BottomTab from '../../../../components/bottom-tab/BottomTab';
 import {
-  Bell, Clock, Pin, ArrowRight, CheckCircle, Activity, User, ShieldCheck, ShieldAlert, PhoneCall
+  Bell, Clock, Pin, ArrowRight, CheckCircle, Activity, User, ShieldCheck, ShieldAlert, PhoneCall, Search, Menu,
+  X, Megaphone, UserCheck, CheckCheck, Trash2, ReceiptText
 } from 'lucide-react-native';
+import DEFAULT_PROFILE from '../../../../assets/images/default_profile.jpg';
 
 type Session = {
   token: string;
@@ -35,6 +37,19 @@ const formatDate = (dateStr: string) => {
   if (days === 0) return 'Today';
   if (days === 1) return 'Yesterday';
   return `${days} days ago`;
+};
+
+const getInitials = (fullName: string) => {
+  if (!fullName) return 'AR';
+  const parts = fullName.trim().split(' ');
+  if (parts.length > 1) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return fullName.substring(0, 2).toUpperCase();
+};
+
+const getProfileImageUrl = (url?: string) => {
+  if (!url) return null;
+  if (url.startsWith('http')) return url;
+  return `${getApiBaseUrl()}${url.startsWith('/') ? '' : '/'}${url}`;
 };
 
 const DUMMY_NOTICES = [
@@ -204,6 +219,80 @@ const ResidentDashboard = ({ navigation }: any) => {
   const [entryRequest, setEntryRequest] = useState<any>(null);
   const [isHandlingApproval, setIsHandlingApproval] = useState(false);
 
+  // Notifications State & Logic
+  const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notificationsFilter, setNotificationsFilter] = useState<'All' | 'SOS' | 'Visitor' | 'Notice' | 'Complaint' | 'Payment'>('All');
+
+  const checkNotifications = async () => {
+    try {
+      const baseUrl = getApiBaseUrl();
+      const sessionRaw = await AsyncStorage.getItem(SESSION_KEY);
+      if (!sessionRaw) return;
+      const parsed = JSON.parse(sessionRaw);
+
+      const res = await api.get('/api/notifications', {
+        headers: { Authorization: `Bearer ${parsed.token}` }
+      });
+      if (res.status === 200) {
+        const data = res.data;
+        if (Array.isArray(data)) {
+          setNotifications(data);
+          const hasUnread = data.some((n: any) => !n.isRead);
+          setHasUnreadNotifications(hasUnread);
+        }
+      }
+    } catch (e) {
+      console.log('Check notifications error:', e);
+    }
+  };
+
+  const handleOpenNotifications = async () => {
+    setShowNotifications(true);
+    await checkNotifications();
+  };
+
+  const handleMarkAllRead = async () => {
+    try {
+      const baseUrl = getApiBaseUrl();
+      const sessionRaw = await AsyncStorage.getItem(SESSION_KEY);
+      if (!sessionRaw) return;
+      const parsed = JSON.parse(sessionRaw);
+
+      const res = await api.patch('/api/notifications/mark-read', {}, {
+        headers: {
+          Authorization: `Bearer ${parsed.token}`
+        }
+      });
+      if (res.status === 200) {
+        setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+        setHasUnreadNotifications(false);
+      }
+    } catch (e) {
+      console.log('Mark all read error:', e);
+    }
+  };
+
+  const handleClearAll = async () => {
+    try {
+      const baseUrl = getApiBaseUrl();
+      const sessionRaw = await AsyncStorage.getItem(SESSION_KEY);
+      if (!sessionRaw) return;
+      const parsed = JSON.parse(sessionRaw);
+
+      const res = await api.delete('/api/notifications/clear', {
+        headers: { Authorization: `Bearer ${parsed.token}` }
+      });
+      if (res.status === 200) {
+        setNotifications([]);
+        setHasUnreadNotifications(false);
+      }
+    } catch (e) {
+      console.log('Clear notifications error:', e);
+    }
+  };
+
   const handleEntryDecision = async (decision: 'approved' | 'denied') => {
     if (!entryRequest) return;
     setIsHandlingApproval(true);
@@ -263,8 +352,9 @@ const ResidentDashboard = ({ navigation }: any) => {
           if (parsed?.token && parsed?.role && parsed?.expiresAt && parsed.expiresAt > Date.now()) {
             setSession(parsed);
             fetchDashboardData();
+            checkNotifications();
 
-            // Connect to Socket.io for Real-time Guest Approvals
+            // Connect to Socket.io for Real-time Guest Approvals & Notifications
             const socket = io(getApiBaseUrl());
             socket.on('connect', () => {
               console.log('[Socket] Connected to backend');
@@ -277,13 +367,34 @@ const ResidentDashboard = ({ navigation }: any) => {
               setEntryRequest(data);
             });
 
+            socket.on('new_notice', (data) => {
+              console.log('[Socket] Resident received new notice:', data);
+              setHasUnreadNotifications(true);
+            });
+
+            socket.on('new_announcement', (data) => {
+              console.log('[Socket] Resident received new announcement:', data);
+              setHasUnreadNotifications(true);
+            });
+
+            socket.on('new_notification', (data) => {
+              console.log('[Socket] Resident received new system notification:', data);
+              setNotifications(prev => [data, ...prev]);
+              setHasUnreadNotifications(true);
+            });
+
             const interval = setInterval(() => {
               viewAnnouncements();
             }, 60000);
 
+            const unsubscribeFocus = navigation.addListener('focus', () => {
+              checkNotifications();
+            });
+
             return () => {
               clearInterval(interval);
               socket.disconnect();
+              unsubscribeFocus();
             };
           }
         } catch { }
@@ -294,7 +405,7 @@ const ResidentDashboard = ({ navigation }: any) => {
     load().catch(() => {
       stackNavigation.reset({ index: 0, routes: [{ name: 'Login' }] });
     });
-  }, [stackNavigation, fetchDashboardData]);
+  }, [stackNavigation, fetchDashboardData, navigation]);
 
   const name = session?.full_name ?? 'Resident';
 
@@ -313,19 +424,27 @@ const ResidentDashboard = ({ navigation }: any) => {
       <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={colorScheme === 'dark' ? '#09090b' : "#F8F9FA"} />
 
       {/* 1. Header Area */}
-      <View className="px-6 pt-4 pb-1 bg-[#F8F9FA] dark:bg-zinc-950">
-        <View className="flex-row items-center justify-between mb-1">
-          <View>
-            <Text className="text-gray-400 font-satoshi-bold text-xs uppercase tracking-widest mb-1">{getTimeGreeting()}</Text>
-            <Text className="text-2xl font-satoshi-black text-gray-900 dark:text-zinc-50">{name}</Text>
+      <View className="px-6 bg-[#F8F9FA] dark:bg-zinc-950">
+        <View className="flex-row items-center justify-between">
+          {/* Left: Logo */}
+          <View className="flex-row items-center">
+            <Text className="text-gray-900 dark:text-zinc-50 font-satoshi-black text-[24px] tracking-tight">SocioSmart</Text>
           </View>
-          <View className="flex-row">
+
+          {/* Right: Actions */}
+          <View className="flex-row items-center gap-x-5">
+            <TouchableOpacity activeOpacity={0.6}>
+              <Search size={24} color={colorScheme === 'dark' ? '#fafafa' : '#1f2937'} strokeWidth={1.5} />
+            </TouchableOpacity>
             <TouchableOpacity
-              onPress={() => stackNavigation.navigate('NoticeBoard')}
-              activeOpacity={0.8}
-              className="w-11 h-11 items-center justify-center"
+              onPress={handleOpenNotifications}
+              activeOpacity={0.6}
+              className="relative"
             >
-              <Bell size={22} color={PRIMARY_COLOR} strokeWidth={2} />
+              <Bell size={24} color={colorScheme === 'dark' ? '#fafafa' : '#1f2937'} strokeWidth={1.5} />
+              {hasUnreadNotifications && (
+                <View className="absolute top-0 right-0 w-[10px] h-[10px] bg-[#EF4444] rounded-full border-2 border-[#F8F9FA] dark:border-zinc-950" />
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -394,7 +513,6 @@ const ResidentDashboard = ({ navigation }: any) => {
               </View>
             )}
           </View>
-
 
           {/* 4. Announcements Feed */}
           <View className="px-2 mt-6">
@@ -536,6 +654,144 @@ const ResidentDashboard = ({ navigation }: any) => {
             </View>
           </View>
         </View>
+      </Modal>
+
+      {/* Premium Real-Time Notifications Overlay Modal */}
+      <Modal visible={showNotifications} transparent animationType="slide" onRequestClose={() => setShowNotifications(false)}>
+        <SafeAreaView className="flex-1 bg-white dark:bg-zinc-950">
+          {/* Header Bar */}
+          <View className="flex-row items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm z-10">
+            <View className="flex-row items-center gap-x-2">
+              <Text className="text-[22px] font-satoshi-bold text-gray-900 dark:text-zinc-50">Notifications</Text>
+              {notifications.some(n => !n.isRead) && (
+                <View className="w-2.5 h-2.5 bg-red-500 rounded-full" />
+              )}
+            </View>
+            <View className="flex-row items-center gap-x-4">
+              {notifications.some(n => !n.isRead) && (
+                <TouchableOpacity onPress={handleMarkAllRead} className="px-3 py-1 bg-blue-50 dark:bg-blue-900/30 rounded-full flex-row items-center gap-x-1">
+                  <CheckCheck size={14} color="#3B82F6" />
+                  <Text className="text-xs font-satoshi-bold text-[#3B82F6] uppercase tracking-wide">Mark Read</Text>
+                </TouchableOpacity>
+              )}
+              {notifications.length > 0 && (
+                <TouchableOpacity onPress={handleClearAll} className="p-2 bg-red-50 dark:bg-red-950/20 rounded-full">
+                  <Trash2 size={16} color="#EF4444" />
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity onPress={() => setShowNotifications(false)} className="w-9 h-9 items-center justify-center bg-gray-100 dark:bg-zinc-800 rounded-full">
+                <X size={18} color={colorScheme === 'dark' ? '#F4F4F5' : '#111827'} />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Categories Horizontal Filter ScrollView */}
+          <View className="px-6 py-3 border-b border-gray-50 dark:border-zinc-900">
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+              {['All', 'SOS', 'Visitor', 'Notice', 'Complaint', 'Payment'].map((cat: any) => {
+                const count = cat === 'All' ? notifications.length : notifications.filter(n => n.category === cat).length;
+                const isSelected = notificationsFilter === cat;
+                return (
+                  <TouchableOpacity
+                    key={cat}
+                    onPress={() => setNotificationsFilter(cat)}
+                    className={`px-4 py-2 rounded-full flex-row items-center gap-x-1.5 border ${isSelected ? 'bg-blue-600 border-blue-600' : 'bg-gray-50 dark:bg-zinc-900 border-gray-150 dark:border-zinc-800'}`}
+                  >
+                    <Text className={`text-xs font-satoshi-bold uppercase tracking-wider ${isSelected ? 'text-white' : 'text-gray-500 dark:text-zinc-400'}`}>
+                      {cat}
+                    </Text>
+                    {count > 0 && (
+                      <View className={`px-1.5 py-0.5 rounded-full ${isSelected ? 'bg-white/20' : 'bg-gray-200 dark:bg-zinc-800'}`}>
+                        <Text className={`text-[10px] font-satoshi-bold ${isSelected ? 'text-white' : 'text-gray-600 dark:text-zinc-400'}`}>
+                          {count}
+                        </Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+
+          {/* Notifications List ScrollView */}
+          <ScrollView className="flex-1 px-6 bg-offWhite dark:bg-zinc-950 py-4" showsVerticalScrollIndicator={false}>
+            {notifications.filter(n => notificationsFilter === 'All' || n.category === notificationsFilter).length === 0 ? (
+              <View className="items-center justify-center py-24 px-8">
+                <View className="w-20 h-20 bg-neutral-100 dark:bg-zinc-900 rounded-full items-center justify-center mb-5 border-2 border-dashed border-gray-300 dark:border-zinc-700">
+                  <Bell size={32} color={colorScheme === 'dark' ? '#52525B' : '#9CA3AF'} />
+                </View>
+                <Text className="text-gray-900 dark:text-zinc-50 font-satoshi-bold text-lg text-center">You're all caught up!</Text>
+                <Text className="text-gray-400 dark:text-zinc-500 text-xs font-satoshi-medium text-center mt-2 px-10 leading-relaxed">
+                  No new alerts or system notifications for category "{notificationsFilter}" right now.
+                </Text>
+              </View>
+            ) : (
+              notifications.filter(n => notificationsFilter === 'All' || n.category === notificationsFilter).map((item) => {
+                // Category Styles
+                let icon = <Bell size={20} color="#64748B" />;
+                let badgeBg = 'bg-gray-100 dark:bg-zinc-800';
+                let cardBorder = 'border-gray-100 dark:border-zinc-800';
+                let glowDot = false;
+
+                if (item.category === 'SOS') {
+                  icon = <ShieldAlert size={20} color="#EF4444" />;
+                  badgeBg = 'bg-red-50 dark:bg-red-950/30';
+                  cardBorder = 'border-red-100 dark:border-red-950/50';
+                } else if (item.category === 'Visitor') {
+                  icon = <UserCheck size={20} color="#3B82F6" />;
+                  badgeBg = 'bg-blue-50 dark:bg-blue-950/30';
+                  cardBorder = 'border-blue-100 dark:border-blue-950/50';
+                } else if (item.category === 'Notice') {
+                  icon = <Megaphone size={20} color="#A855F7" />;
+                  badgeBg = 'bg-purple-50 dark:bg-purple-950/30';
+                  cardBorder = 'border-purple-100 dark:border-purple-950/50';
+                } else if (item.category === 'Complaint') {
+                  icon = <Clock size={20} color="#F59E0B" />;
+                  badgeBg = 'bg-amber-50 dark:bg-amber-950/30';
+                  cardBorder = 'border-amber-100 dark:border-amber-950/50';
+                } else if (item.category === 'Payment') {
+                  icon = <ReceiptText size={20} color="#10B981" />;
+                  badgeBg = 'bg-emerald-50 dark:bg-emerald-950/30';
+                  cardBorder = 'border-emerald-100 dark:border-emerald-950/50';
+                }
+
+                if (!item.isRead) {
+                  glowDot = true;
+                }
+
+                return (
+                  <View
+                    key={item._id}
+                    className={`bg-white dark:bg-zinc-900 rounded-2xl p-4 mb-4 border shadow-sm flex-row items-start ${cardBorder}`}
+                  >
+                    {glowDot && (
+                      <View className="w-2 h-2 rounded-full bg-blue-500 absolute top-4 left-3" />
+                    )}
+                    <View className={`w-10 h-10 rounded-full items-center justify-center mr-3 ${badgeBg} ${glowDot ? 'pl-1' : ''}`}>
+                      {icon}
+                    </View>
+                    <View className="flex-1">
+                      <View className="flex-row items-center justify-between">
+                        <Text className={`text-[10px] font-satoshi-bold uppercase tracking-widest ${item.category === 'SOS' ? 'text-red-500' : 'text-gray-400 dark:text-zinc-500'}`}>
+                          {item.category}
+                        </Text>
+                        <Text className="text-gray-400 dark:text-zinc-500 text-[10px] font-satoshi-medium">
+                          {new Date(item.createdAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                        </Text>
+                      </View>
+                      <Text className={`text-[15px] text-gray-900 dark:text-zinc-50 leading-snug mt-1 ${glowDot ? 'font-satoshi-bold' : 'font-satoshi-medium'}`}>
+                        {item.title}
+                      </Text>
+                      <Text className="text-gray-500 dark:text-zinc-400 text-xs font-satoshi-medium mt-1 leading-relaxed">
+                        {item.message}
+                      </Text>
+                    </View>
+                  </View>
+                );
+              })
+            )}
+          </ScrollView>
+        </SafeAreaView>
       </Modal>
     </SafeAreaView>
   );

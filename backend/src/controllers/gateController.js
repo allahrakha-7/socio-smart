@@ -12,14 +12,17 @@ export const manualTriggerGate = async (req, res) => {
       return res.status(403).json({ message: 'Unauthorized: Only authorized personnel can trigger manual gate override' });
     }
 
+    const { action } = req.body;
+    const gateAction = action === 'CLOSE' ? 'CLOSE' : 'OPEN';
+
     // 1. Send MQTT Command to ESP32 Relay
-    const result = mqttService.publishGateCommand('OPEN');
+    const result = mqttService.publishGateCommand(gateAction);
 
     // 2. Log the activity for auditing
     const activity = await GateActivity.create({
       plate_number: 'MANUAL_OVERRIDE',
       status: 'GRANTED',
-      reason: `Manual Override by ${req.user.role}`,
+      reason: `Manual Override by ${req.user.role} (${gateAction})`,
       owner_name: 'SECURITY_DEPT',
       unit: 'GATE_01',
       is_manual_override: true,
@@ -32,14 +35,15 @@ export const manualTriggerGate = async (req, res) => {
       io.emit('gate_activity', {
         plate_number: 'MANUAL_OVERRIDE',
         authorized: true,
-        reason: 'Manual Security Override',
+        reason: `Manual Security Override (${gateAction})`,
+        action: gateAction,
         timestamp: activity.timestamp
       });
     }
 
     res.status(200).json({ 
       success: true, 
-      message: 'Gate open command transmitted successfully',
+      message: `Gate ${gateAction.toLowerCase()} command transmitted successfully`,
       iot_details: result 
     });
   } catch (error) {
@@ -56,7 +60,7 @@ export const verifyGateAccess = async (req, res) => {
     const plate = String(plate_number).toUpperCase().trim();
     
     // 1. Search Vehicle Database (Residents)
-    let vehicle = await Vehicle.findOne({ vehicle_number: plate }).populate('owner', 'full_name house_number');
+    let vehicle = await Vehicle.findOne({ vehicle_number: plate }).populate('owner', 'full_name house_number status');
     
     let authorized = false;
     let details = null;
@@ -68,6 +72,8 @@ export const verifyGateAccess = async (req, res) => {
         reason = 'VEHICLE BLACKLISTED';
       } else if (vehicle.approval_status !== 'approved') {
         reason = 'REGISTRATION PENDING APPROVAL';
+      } else if (vehicle.owner && vehicle.owner.status !== 'active') {
+        reason = 'RESIDENT ACCOUNT INACTIVE';
       } else {
         authorized = true;
         reason = 'AUTHORIZED RESIDENT';
@@ -75,7 +81,8 @@ export const verifyGateAccess = async (req, res) => {
           owner: vehicle.owner?.full_name || 'Member',
           unit: vehicle.owner?.house_number || 'N/A',
           make: vehicle.make_model,
-          color: vehicle.color
+          color: vehicle.color,
+          residentId: vehicle.owner?._id
         };
       }
     } else {
@@ -90,22 +97,27 @@ export const verifyGateAccess = async (req, res) => {
         plate_number: plate, 
         status: 'pending',
         expected_date: { $gte: todayStart, $lte: todayEnd }
-      });
+      }).populate('resident', 'full_name status');
 
       if (visitor) {
-        authorized = true;
-        reason = `Pre-Approved Guest for House ${visitor.house_number} — Welcome!`;
-        details = {
-          owner: visitor.name || 'Guest',
-          unit: visitor.house_number,
-          make: 'Pre-Approved',
-          color: 'Visitor'
-        };
-        isVisitor = true;
+        if (visitor.resident && visitor.resident.status !== 'active') {
+          reason = 'HOST RESIDENT ACCOUNT INACTIVE';
+        } else {
+          authorized = true;
+          reason = `Pre-Approved Guest for House ${visitor.house_number} — Welcome!`;
+          details = {
+            owner: visitor.name || 'Guest',
+            unit: visitor.house_number,
+            make: 'Pre-Approved',
+            color: 'Visitor',
+            residentId: visitor.resident?._id
+          };
+          isVisitor = true;
 
-        // Auto-mark as arriving to prevent reuse
-        visitor.status = 'arrived';
-        await visitor.save();
+          // Auto-mark as arriving to prevent reuse
+          visitor.status = 'arrived';
+          await visitor.save();
+        }
       }
     }
 
@@ -121,7 +133,42 @@ export const verifyGateAccess = async (req, res) => {
       guard: currentGuard?.staff?._id || undefined
     });
 
-    // 3. Emit Real-time Socket Event for Security Guard Dashboard
+    // 3. Actuate gate, write log entry, notify resident if authorized
+    if (authorized) {
+      // 3.1 Send MQTT Command to ESP32 Relay
+      mqttService.publishGateCommand('OPEN');
+
+      // 3.2 Create the official GateLog entry so it shows in guard's APK feed
+      await GateLog.create({
+        name: details?.owner || 'Authorized Vehicle',
+        vehicle_number: plate,
+        type: isVisitor ? 'Visitor' : 'Resident',
+        purpose: isVisitor ? 'Pre-Approved Guest' : 'Automated NPR Entry',
+        unit_to_visit: details?.unit,
+        gate: 'Main Gate',
+        guard: currentGuard?.staff?._id || undefined,
+        status: 'inside',
+        entry_time: new Date(),
+        plate_image: `https://placehold.co/400x150/111827/FFFFFF?text=${plate}`
+      });
+
+      // 3.3 Trigger real-time system notification to the resident
+      if (details?.residentId) {
+        const io = req.app.get('io');
+        const { triggerSystemNotification } = await import('./notificationController.js');
+        await triggerSystemNotification({
+          recipient: details.residentId,
+          title: isVisitor ? 'Guest Arrived' : 'Vehicle Entered',
+          message: isVisitor 
+            ? `Your guest ${details.owner} has arrived at the society gate.`
+            : `Your vehicle ${plate} (${details.make}) has entered the society gate.`,
+          category: isVisitor ? 'Visitor' : 'Vehicle',
+          io
+        });
+      }
+    }
+
+    // 4. Emit Real-time Socket Event for Security Guard Dashboard
     const io = req.app.get('io');
     if (io) {
       io.emit('gate_activity', {
@@ -154,6 +201,7 @@ export const createEntry = async (req, res) => {
       unit_to_visit,
       gate: gate || 'Main Gate',
       guard: req.user.id,
+      plate_image: vehicle_number ? `https://placehold.co/400x150/111827/FFFFFF?text=${String(vehicle_number).toUpperCase().trim()}` : undefined
     });
 
     res.status(201).json(log);

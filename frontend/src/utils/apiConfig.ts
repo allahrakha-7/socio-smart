@@ -3,7 +3,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_PORT = 5000;
-const FALLBACK_IP = '192.168.30.234';
+const FALLBACK_IP = '192.168.1.5';
 
 export const getApiBaseUrl = () => {
   const scriptURL: string | undefined = NativeModules?.SourceCode?.scriptURL;
