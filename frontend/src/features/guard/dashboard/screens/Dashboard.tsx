@@ -465,7 +465,63 @@ const GuardDashboard = ({ navigation }: any) => {
 
       <ScrollView className="flex-1 bg-offWhite dark:bg-zinc-950 overflow-hidden" showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <View className="h-[2px] bg-gray-200 dark:bg-zinc-800/60 mb-3" />
-        <View className="px-6 pt-6">
+        <View className="px-4 pt-2">
+
+          {/* Active Visitors in Society - BLUE BOARD STYLE */}
+          <View className="mb-6 p-6 bg-[#2563EB] rounded-lg shadow-lg shadow-blue-500/20">
+            <View className="flex-row items-center justify-between mb-6">
+              <View>
+                <Text className="text-white font-satoshi-black text-xl tracking-tight">Social Presence</Text>
+                <Text className="text-blue-100 text-[10px] font-satoshi-bold mt-1 uppercase tracking-widest">
+                  {visitorsInside.length > 0 ? `${visitorsInside.length} visitors active` : 'Community Status'}
+                </Text>
+              </View>
+              <View className="flex-row items-center bg-white/15 px-3 py-1.5 rounded-full">
+                <PulsingDot color={visitorsInside.length > 0 ? "#4ADE80" : "#4ADE80"} />
+                <Text className="text-white text-[10px] font-satoshi-black uppercase">
+                  {visitorsInside.length > 0 ? 'Live Inside' : 'All Clear'}
+                </Text>
+              </View>
+            </View>
+
+            {visitorsInside.length > 0 ? (
+              <>
+                <View className="flex-row flex-wrap justify-between">
+                  {visitorsInside.slice(0, 8).map((v: any, index: number) => (
+                    <View key={v._id || index} className="w-[22%] items-center mb-4">
+                      <View className="w-16 h-16 bg-white/10 rounded-[22px] items-center justify-center border border-white/5 relative">
+                        <Text className="text-white font-satoshi-black text-xl">{v.name ? v.name.charAt(0) : '?'}</Text>
+                        <View className="absolute -bottom-1 -right-1 bg-[#0B3BBE] p-1 rounded-lg border border-white/20">
+                          <User size={12} color="white" />
+                        </View>
+                      </View>
+                      <Text className="text-white font-satoshi-bold text-[10px] mt-2.5 w-full text-center" numberOfLines={1}>{v.name ? v.name.split(' ')[0] : 'Visitor'}</Text>
+                      <Text className="text-blue-100/50 font-satoshi-medium text-[8px] mt-0.5">{v.type || 'Guest'}</Text>
+                    </View>
+                  ))}
+                </View>
+
+                {visitorsInside.length > 8 && (
+                  <TouchableOpacity
+                    onPress={() => stackNavigation.navigate('GateLogs')}
+                    activeOpacity={0.8}
+                    className="w-full bg-white/10 mt-2 py-4 rounded-2xl flex-row items-center justify-center border border-white/5"
+                  >
+                    <Text className="text-white font-satoshi-black text-[12px] uppercase tracking-widest">View Full List ({visitorsInside.length})</Text>
+                    <ArrowRight size={14} color="white" className="ml-2" />
+                  </TouchableOpacity>
+                )}
+              </>
+            ) : (
+              <View className="py-2 items-center">
+                <View className="w-16 h-16 bg-white/10 rounded-[22px] items-center justify-center mb-3">
+                  <CheckCircle size={28} color="white" strokeWidth={1.5} />
+                </View>
+                <Text className="text-white font-satoshi-bold text-center text-[13px]">Peaceful Environment</Text>
+                <Text className="text-blue-100/60 text-center text-[10px] mt-1 font-satoshi-medium px-8">No active visitors are currently inside the society</Text>
+              </View>
+            )}
+          </View>
 
           {/* 3.1 Digital Pings & Call Requests (NEW) */}
           <View className="mb-6">
@@ -513,62 +569,6 @@ const GuardDashboard = ({ navigation }: any) => {
             )}
           </View>
 
-          {/* Active Visitors in Society - BLUE BOARD STYLE */}
-          <View className="mb-6 p-6 bg-[#2563EB] rounded-[28px] shadow-lg shadow-blue-500/20">
-            <View className="flex-row items-center justify-between mb-6">
-              <View>
-                <Text className="text-white font-satoshi-black text-xl tracking-tight">Social Presence</Text>
-                <Text className="text-blue-100 text-[10px] font-satoshi-bold mt-1 uppercase tracking-widest">
-                  {visitorsInside.length > 0 ? `${visitorsInside.length} visitors active` : 'Community Status'}
-                </Text>
-              </View>
-              <View className="flex-row items-center bg-white/15 px-3 py-1.5 rounded-full">
-                <PulsingDot color={visitorsInside.length > 0 ? "#4ADE80" : "#4ADE80"} />
-                <Text className="text-white text-[10px] font-satoshi-black uppercase">
-                  {visitorsInside.length > 0 ? 'Live Inside' : 'All Clear'}
-                </Text>
-              </View>
-            </View>
-
-            {visitorsInside.length > 0 ? (
-              <>
-                <View className="flex-row flex-wrap justify-start gap-x-4">
-                  {visitorsInside.slice(0, 8).map((v: any, index: number) => (
-                    <View key={v._id || index} className="w-[22%] items-center mb-4">
-                      <View className="w-16 h-16 bg-white/10 rounded-[22px] items-center justify-center border border-white/5 relative">
-                        <Text className="text-white font-satoshi-black text-xl">{v.name ? v.name.charAt(0) : '?'}</Text>
-                        <View className="absolute -bottom-1 -right-1 bg-[#0B3BBE] p-1 rounded-lg border border-white/20">
-                          <User size={12} color="white" />
-                        </View>
-                      </View>
-                      <Text className="text-white font-satoshi-bold text-[10px] mt-2.5 w-full text-center" numberOfLines={1}>{v.name ? v.name.split(' ')[0] : 'Visitor'}</Text>
-                      <Text className="text-blue-100/50 font-satoshi-medium text-[8px] mt-0.5" numberOfLines={1}>{v.vehicle_number || 'Walk-in'}</Text>
-                    </View>
-                  ))}
-                </View>
-
-                {visitorsInside.length > 8 && (
-                  <TouchableOpacity
-                    onPress={() => stackNavigation.navigate('GateLogs')}
-                    activeOpacity={0.8}
-                    className="w-full bg-white/10 mt-2 py-4 rounded-2xl flex-row items-center justify-center border border-white/5"
-                  >
-                    <Text className="text-white font-satoshi-black text-[12px] uppercase tracking-widest">View Full List ({visitorsInside.length})</Text>
-                    <ArrowRight size={14} color="white" className="ml-2" />
-                  </TouchableOpacity>
-                )}
-              </>
-            ) : (
-              <View className="py-2 items-center">
-                <View className="w-16 h-16 bg-white/10 rounded-[22px] items-center justify-center mb-3">
-                  <CheckCircle size={28} color="white" strokeWidth={1.5} />
-                </View>
-                <Text className="text-white font-satoshi-bold text-center text-[13px]">Peaceful Environment</Text>
-                <Text className="text-blue-100/60 text-center text-[10px] mt-1 font-satoshi-medium px-8">No active visitors are currently inside the society</Text>
-              </View>
-            )}
-          </View>
-
           {/* 3. Visitor Management */}
           <View className="mb-6">
             <View className="flex-row justify-between items-center mb-4">
@@ -577,7 +577,7 @@ const GuardDashboard = ({ navigation }: any) => {
                 <TouchableOpacity
                   activeOpacity={0.7}
                   onPress={() => stackNavigation.navigate('GuestVerification')}
-                  className="bg-blue-600 px-3 py-1 rounded-full flex-row items-center shadow-sm mr-1"
+                  className="bg-blue-600 px-3 py-1 rounded-full flex-row items-center shadow-sm mr-1.5"
                 >
                   <ShieldCheck size={14} color="white" />
                   <Text className="text-white font-satoshi-bold text-xs ml-1.5">Verify Guest</Text>
