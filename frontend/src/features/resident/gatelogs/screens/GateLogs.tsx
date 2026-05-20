@@ -70,7 +70,7 @@ const GateLogs = ({ navigation }: any) => {
       const parsed = JSON.parse(sessionRaw);
       setSession(parsed);
 
-      const endpoint = parsed.role === 'admin' ? '/api/gate/logs' : '/api/gate/my';
+      const endpoint = (parsed.role === 'admin' || parsed.role === 'guard') ? '/api/gate/logs' : '/api/gate/my';
       const response = await fetch(`${baseUrl}${endpoint}`, {
         headers: { Authorization: `Bearer ${parsed.token}` }
       });
@@ -158,7 +158,7 @@ const GateLogs = ({ navigation }: any) => {
       });
 
       const csvData = [headers, ...rows].join('\n');
-      
+
       await Share.share({
         message: csvData,
         title: 'GateLogs_Export.csv',
@@ -175,10 +175,10 @@ const GateLogs = ({ navigation }: any) => {
     const duration = getStayDuration(item.entry_time, item.exit_time);
 
     return (
-      <View className={`bg-white dark:bg-zinc-900 p-6 rounded-[32px] mb-4 border shadow-sm ${isOverride ? 'border-rose-100 dark:border-rose-900/40 bg-rose-50/10' : 'border-zinc-50 dark:border-zinc-800/60'}`}>
+      <View className={`bg-white dark:bg-zinc-900 p-6 rounded-lg mb-2 border shadow-sm ${isOverride ? 'border-rose-100 dark:border-rose-900/40 bg-rose-50/10' : 'border-zinc-50 dark:border-zinc-800/60'}`}>
         <View className="flex-row justify-between items-start">
           <View className="flex-row flex-1">
-            <View className={`w-14 h-14 rounded-3xl items-center justify-center ${isOverride ? 'bg-rose-50 dark:bg-rose-900/20' : 'bg-blue-50 dark:bg-blue-900/10'}`}>
+            <View className={`w-14 h-14 rounded-full items-center justify-center ${isOverride ? 'bg-rose-50 dark:bg-rose-900/20' : 'bg-blue-50 dark:bg-blue-900/10'}`}>
               {item.type === 'Resident' ? <Car size={24} color={PRIMARY_BLUE} /> : <UserCheck size={24} color={isOverride ? '#EF4444' : PRIMARY_BLUE} />}
             </View>
             <View className="ml-4 flex-1">
@@ -190,7 +190,7 @@ const GateLogs = ({ navigation }: any) => {
                   </View>
                 )}
               </View>
-              <Text className="text-gray-400 font-satoshi-bold text-[10px] mt-0.5 uppercase">{item.name} ��� Unit {item.unit_to_visit}</Text>
+              <Text className="text-gray-400 font-satoshi-bold text-[10px] mt-0.5 uppercase">{item.name} • Unit {item.unit_to_visit}</Text>
             </View>
           </View>
 
@@ -199,16 +199,6 @@ const GateLogs = ({ navigation }: any) => {
             <Text className={`text-[9px] font-satoshi-black uppercase ${isExited ? 'text-zinc-500' : 'text-green-700 dark:text-green-400'}`}>{item.status}</Text>
           </View>
         </View>
-
-        {session?.role === 'admin' && item.plate_image && (
-          <View className="mt-4 mb-2 rounded-2xl overflow-hidden border border-gray-100 dark:border-zinc-800">
-            <Image
-              source={{ uri: item.plate_image }}
-              className="w-full h-32"
-              resizeMode="cover"
-            />
-          </View>
-        )}
 
         {/* Audit Data Block */}
         <View className="mt-6 bg-zinc-50 dark:bg-zinc-800/30 p-4 rounded-3xl space-y-3">
@@ -287,12 +277,12 @@ const GateLogs = ({ navigation }: any) => {
       </View>
 
       <View className="mt-4">
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="pl-6 mb-4">
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="pl-1.5 mb-4">
           {filters.map(f => (
             <Pressable
               key={f}
               onPress={() => setActiveFilter(f)}
-              className={`mr-3 px-4 py-2.5 rounded-full border ${activeFilter === f ? 'bg-blue-600 border-blue-600' : 'bg-white dark:bg-zinc-900 border-zinc-100 dark:border-zinc-800'}`}
+              className={`mr-1.5 px-3 py-1.5 rounded-full border ${activeFilter === f ? 'bg-blue-600 border-blue-600' : 'bg-white dark:bg-zinc-900 border-zinc-100 dark:border-zinc-800'}`}
             >
               <Text className={`font-satoshi-black text-[10px] uppercase tracking-widest ${activeFilter === f ? 'text-white' : 'text-zinc-500'}`}>{f}</Text>
             </Pressable>

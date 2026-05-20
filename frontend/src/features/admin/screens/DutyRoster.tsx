@@ -260,8 +260,8 @@ const DutyRoster = () => {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
-        <View className="px-5">
-          <View className="bg-[#0B3BBE] rounded-[32px] p-5 shadow-sm">
+        <View className="px-3 mt-2">
+          <View className="bg-[#0B3BBE] rounded-lg p-5 shadow-sm">
             <View className="flex-row items-center justify-between">
               <View>
                 <Text className="text-white font-satoshi-bold text-base">{selectedDay}</Text>

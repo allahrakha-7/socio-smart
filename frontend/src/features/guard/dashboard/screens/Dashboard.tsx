@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Text, View, TouchableOpacity, ScrollView, StyleSheet, Alert, StatusBar, Platform, NativeModules, Modal, TextInput, ActivityIndicator, Animated } from 'react-native';
+import { Text, View, TouchableOpacity, ScrollView, StyleSheet, Alert, StatusBar, Platform, NativeModules, Modal, TextInput, ActivityIndicator, Animated, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useColorScheme } from 'nativewind';
@@ -7,7 +7,8 @@ import BottomTab from '../../../../components/bottom-tab/BottomTab';
 import { io, Socket } from 'socket.io-client';
 import {
   Bell, Search, Unlock, Lock, Camera, CheckCircle, XCircle, Clock, Car, UserPlus, Phone, AlertOctagon,
-  Megaphone, Users, Check, Hash, ShieldCheck, Scan, Zap, ShieldAlert, User, ArrowRight, Settings
+  Megaphone, Users, Check, Hash, ShieldCheck, Scan, Zap, ShieldAlert, User, ArrowRight, ArrowLeft, Settings,
+  X, UserCheck, MessageSquareWarning, ReceiptText, ChevronRight
 } from 'lucide-react-native';
 
 type Session = {
@@ -62,6 +63,13 @@ const PulsingDot = ({ color = '#4ADE80' }) => {
 
 // Live data from API replaces hardcoded placeholders
 
+const ALL_SHORTCUTS = [
+  { label: 'Hardware Override', screen: 'GateOverride', category: 'Security Tools', description: 'Open, close, or hold the society main gate.' },
+  { label: 'Guest Verification', screen: 'GuestVerification', category: 'Visitor Tools', description: 'Verify pre-approved guest codes.' },
+  { label: 'Visitor Add Entry', screen: 'GuardEntry', category: 'Visitor Tools', description: 'Manually register a walk-in or vehicle visitor.' },
+  { label: 'Society Notice Board', screen: 'NoticeBoard', category: 'Communication', description: 'Read latest community updates and rosters.' }
+];
+
 const GuardDashboard = ({ navigation }: any) => {
   const [session, setSession] = useState<Session | null>(null);
   const [gateOpen, setGateOpen] = useState(false);
@@ -88,8 +96,150 @@ const GuardDashboard = ({ navigation }: any) => {
   const [visitorPurpose, setVisitorPurpose] = useState('Visitor Entry');
   const [authorizedActivity, setAuthorizedActivity] = useState<any>(null);
   const [scanningPlate, setScanningPlate] = useState<string | null>(null);
+  const [authorizedVehicleModalVisible, setAuthorizedVehicleModalVisible] = useState(false);
 
   const stackNavigation = navigation?.getParent?.() ?? navigation;
+
+  // Search State
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any>({ tools: [], residents: [] });
+  const [allResidents, setAllResidents] = useState<any[]>([]);
+  const [searching, setSearching] = useState(false);
+
+  // Notifications State & Logic
+  const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notificationsFilter, setNotificationsFilter] = useState<'All' | 'SOS' | 'Visitor' | 'Notice' | 'Complaint' | 'Payment'>('All');
+
+  const checkNotifications = async () => {
+    try {
+      const baseUrl = getApiBaseUrl();
+      const sessionRaw = await AsyncStorage.getItem(SESSION_KEY);
+      if (!sessionRaw) return;
+      const parsed = JSON.parse(sessionRaw);
+
+      const res = await fetch(`${baseUrl}/api/notifications`, {
+        headers: { Authorization: `Bearer ${parsed.token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setNotifications(data);
+          const hasUnread = data.some((n: any) => !n.isRead);
+          setHasUnreadNotifications(hasUnread);
+        }
+      }
+    } catch (e) {
+      console.log('Check notifications error:', e);
+    }
+  };
+
+  const handleOpenNotifications = async () => {
+    setShowNotifications(true);
+    await checkNotifications();
+  };
+
+  const handleMarkAllRead = async () => {
+    try {
+      const baseUrl = getApiBaseUrl();
+      const sessionRaw = await AsyncStorage.getItem(SESSION_KEY);
+      if (!sessionRaw) return;
+      const parsed = JSON.parse(sessionRaw);
+
+      const res = await fetch(`${baseUrl}/api/notifications/mark-read`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${parsed.token}`
+        }
+      });
+      if (res.ok) {
+        setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+        setHasUnreadNotifications(false);
+      }
+    } catch (e) {
+      console.log('Mark all read error:', e);
+    }
+  };
+
+  const handleClearAll = async () => {
+    try {
+      const baseUrl = getApiBaseUrl();
+      const sessionRaw = await AsyncStorage.getItem(SESSION_KEY);
+      if (!sessionRaw) return;
+      const parsed = JSON.parse(sessionRaw);
+
+      const res = await fetch(`${baseUrl}/api/notifications/clear`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${parsed.token}` }
+      });
+      if (res.ok) {
+        setNotifications([]);
+        setHasUnreadNotifications(false);
+      }
+    } catch (e) {
+      console.log('Clear notifications error:', e);
+    }
+  };
+
+  // Fetch residents when search is opened
+  const handleOpenSearch = async () => {
+    setShowSearch(true);
+    setSearchQuery('');
+    setSearching(true);
+    try {
+      const baseUrl = getApiBaseUrl();
+      const sessionRaw = await AsyncStorage.getItem(SESSION_KEY);
+      if (sessionRaw) {
+        const parsed = JSON.parse(sessionRaw);
+        const res = await fetch(`${baseUrl}/api/community/residents`, {
+          headers: { Authorization: `Bearer ${parsed.token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setAllResidents(data || []);
+        }
+      }
+    } catch (e) {
+      console.log('Search fetch error:', e);
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  // Perform search locally
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSearchResults({
+        tools: ALL_SHORTCUTS,
+        residents: []
+      });
+      return;
+    }
+
+    const query = searchQuery.toLowerCase();
+    const filteredTools = ALL_SHORTCUTS.filter(
+      tool => tool.label.toLowerCase().includes(query) || tool.description.toLowerCase().includes(query)
+    );
+    const filteredResidents = allResidents.filter(
+      r => r.full_name?.toLowerCase().includes(query) || r.house_number?.toLowerCase().includes(query)
+    );
+
+    setSearchResults({
+      tools: filteredTools,
+      residents: filteredResidents
+    });
+  }, [searchQuery, allResidents]);
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      fetchGuardData();
+      checkNotifications();
+    });
+    return unsubscribe;
+  }, [navigation]);
 
   const fetchGuardData = async () => {
     setIsLoading(true);
@@ -144,8 +294,18 @@ const GuardDashboard = ({ navigation }: any) => {
   };
 
   useEffect(() => {
+    if (!session?.token) return;
+
     const baseUrl = getApiBaseUrl();
-    const socket = io(baseUrl);
+    const socket = io(baseUrl, {
+      transports: ['websocket'],
+      reconnection: true,
+      auth: { token: session.token }
+    });
+
+    socket.on('connect', () => {
+      console.log('[Security Hub] Connected securely:', socket.id);
+    });
 
     socket.on('emergency_alert', async (data) => {
       const raw = await AsyncStorage.getItem(SESSION_KEY);
@@ -182,6 +342,22 @@ const GuardDashboard = ({ navigation }: any) => {
       }, ...prev]);
     });
 
+    socket.on('new_notice', (data) => {
+      console.log('[Socket] New notice received:', data);
+      setHasUnreadNotifications(true);
+    });
+
+    socket.on('new_announcement', (data) => {
+      console.log('[Socket] New announcement received:', data);
+      setHasUnreadNotifications(true);
+    });
+
+    socket.on('new_notification', (data) => {
+      console.log('[Socket] New system notification received:', data);
+      setNotifications(prev => [data, ...prev]);
+      setHasUnreadNotifications(true);
+    });
+
     socket.on('entry_request_handled', (data) => {
       console.log('[Security Hub] Entry Request Handled:', data);
       Alert.alert(
@@ -212,8 +388,10 @@ const GuardDashboard = ({ navigation }: any) => {
         setGateOpen(true);
         if (data.plate_number !== 'MANUAL_OVERRIDE') {
           setAuthorizedActivity(data);
+          setAuthorizedVehicleModalVisible(true);
           setTimeout(() => {
             setAuthorizedActivity(null);
+            setAuthorizedVehicleModalVisible(false);
           }, 6000);
         }
         setTimeout(() => {
@@ -235,7 +413,7 @@ const GuardDashboard = ({ navigation }: any) => {
     return () => {
       socket.disconnect();
     };
-  }, []);
+  }, [session?.token]);
 
   useEffect(() => {
     const load = async () => {
@@ -246,6 +424,7 @@ const GuardDashboard = ({ navigation }: any) => {
           if (parsed?.token && parsed?.role && parsed?.expiresAt && parsed.expiresAt > Date.now()) {
             setSession(parsed);
             fetchGuardData();
+            checkNotifications();
             return;
           }
         } catch { }
@@ -435,19 +614,7 @@ const GuardDashboard = ({ navigation }: any) => {
     <SafeAreaView className="flex-1 bg-[#F8F9FA] dark:bg-zinc-950">
       <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={colorScheme === 'dark' ? '#09090b' : "#F8F9FA"} />
 
-      {authorizedActivity && (
-        <View className="absolute top-24 left-6 right-6 bg-green-600 dark:bg-green-700 p-5 rounded-[28px] z-50 flex-row items-center border border-green-500 shadow-xl shadow-green-600/30">
-          <View className="w-12 h-12 bg-white/20 rounded-full items-center justify-center mr-4">
-            <CheckCircle size={24} color="white" />
-          </View>
-          <View className="flex-1">
-            <Text className="text-white font-satoshi-bold text-xs uppercase tracking-wider mb-0.5">Authorized Vehicle Scanned</Text>
-            <Text className="text-white font-satoshi-black text-xs">
-              {authorizedActivity.details?.make === 'Pre-Approved' ? 'Guest' : 'Resident'} {authorizedActivity.details?.owner || 'Owner'} (Flat {authorizedActivity.details?.unit || 'N/A'}) - Car {authorizedActivity.plate_number} entered at {formatTime(authorizedActivity.timestamp || new Date().toISOString())}.
-            </Text>
-          </View>
-        </View>
-      )}
+      {/* Authorized Activity Floating Banner replaced with Modal */}
 
       {scanningPlate && (
         <View className="absolute top-24 left-6 right-6 bg-[#2563EB] dark:bg-blue-900 p-5 rounded-[28px] z-50 flex-row items-center border border-blue-500 shadow-xl shadow-blue-600/30">
@@ -473,16 +640,18 @@ const GuardDashboard = ({ navigation }: any) => {
 
           {/* Right: Actions */}
           <View className="flex-row items-center gap-x-5">
-            <TouchableOpacity activeOpacity={0.6}>
+            <TouchableOpacity onPress={handleOpenSearch} activeOpacity={0.6}>
               <Search size={24} color={colorScheme === 'dark' ? '#fafafa' : '#1f2937'} strokeWidth={1.5} />
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={() => stackNavigation.navigate('NoticeBoard')}
+              onPress={handleOpenNotifications}
               activeOpacity={0.6}
               className="relative"
             >
               <Bell size={24} color={colorScheme === 'dark' ? '#fafafa' : '#1f2937'} strokeWidth={1.5} />
-              <View className="absolute top-0 right-0 w-[10px] h-[10px] bg-[#EF4444] rounded-full border-2 border-[#F8F9FA] dark:border-zinc-950" />
+              {hasUnreadNotifications && (
+                <View className="absolute top-0 right-0 w-[10px] h-[10px] bg-[#EF4444] rounded-full border-2 border-[#F8F9FA] dark:border-zinc-950" />
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -515,13 +684,25 @@ const GuardDashboard = ({ navigation }: any) => {
                   {visitorsInside.slice(0, 8).map((v: any, index: number) => (
                     <View key={v._id || index} className="w-[22%] items-center mb-4">
                       <View className="w-16 h-16 bg-white/10 rounded-[22px] items-center justify-center border border-white/5 relative">
-                        <Text className="text-white font-satoshi-black text-xl">{v.name ? v.name.charAt(0) : '?'}</Text>
+                        {v.vehicle_number ? (
+                          <Car size={24} color="white" />
+                        ) : (
+                          <User size={24} color="white" />
+                        )}
                         <View className="absolute -bottom-1 -right-1 bg-[#0B3BBE] p-1 rounded-lg border border-white/20">
-                          <User size={12} color="white" />
+                          {v.vehicle_number ? (
+                            <Car size={10} color="white" />
+                          ) : (
+                            <User size={10} color="white" />
+                          )}
                         </View>
                       </View>
-                      <Text className="text-white font-satoshi-bold text-[10px] mt-2.5 w-full text-center" numberOfLines={1}>{v.name ? v.name.split(' ')[0] : 'Visitor'}</Text>
-                      <Text className="text-blue-100/50 font-satoshi-medium text-[8px] mt-0.5">{v.type || 'Guest'}</Text>
+                      <Text className="text-white font-satoshi-black text-[9px] mt-2.5 w-full text-center tracking-wider" numberOfLines={1}>
+                        {v.vehicle_number || 'WALK-IN'}
+                      </Text>
+                      <Text className="text-blue-100/60 font-satoshi-bold text-[8px] mt-0.5 text-center" numberOfLines={1}>
+                        {v.name || 'Visitor'}
+                      </Text>
                     </View>
                   ))}
                 </View>
@@ -559,7 +740,7 @@ const GuardDashboard = ({ navigation }: any) => {
 
             {incomingPings.length > 0 ? (
               <View className="gap-y-3">
-                {incomingPings.map((ping) => (
+                {incomingPings.slice(0, 3).map((ping) => (
                   <View key={ping.id} className="bg-white dark:bg-zinc-900 rounded-2xl p-4 border border-gray-100 dark:border-zinc-800 shadow-sm flex-row items-center justify-between">
                     <View className="flex-row items-center flex-1">
                       <View className="w-12 h-12 bg-blue-50 dark:bg-blue-900/40 rounded-full items-center justify-center mr-4">
@@ -624,8 +805,8 @@ const GuardDashboard = ({ navigation }: any) => {
                 <Text className="text-gray-500 dark:text-zinc-400 font-satoshi-bold text-[11px] uppercase ml-2 tracking-wider">Pending Exits Inside Society</Text>
               </View>
               {pendingExits.length > 0 ? (
-                pendingExits.map((visitor, idx) => (
-                  <View key={visitor._id} className={`p-4 flex-row justify-between items-center ${idx !== pendingExits.length - 1 ? 'border-b border-gray-50 dark:border-zinc-800' : ''}`}>
+                pendingExits.slice(0, 3).map((visitor, idx, arr) => (
+                  <View key={visitor._id} className={`p-4 flex-row justify-between items-center ${idx !== arr.length - 1 ? 'border-b border-gray-50 dark:border-zinc-800' : ''}`}>
                     <View className="flex-1 pr-4">
                       <Text className="text-gray-900 dark:text-zinc-50 font-satoshi-bold text-[15px]">{visitor.name}</Text>
                       <Text className="text-gray-500 dark:text-zinc-400 font-satoshi-medium text-[12px] mt-1">{visitor.vehicle_number || 'Walk-in'}  •  {formatTime(visitor.entry_time)}</Text>
@@ -667,7 +848,7 @@ const GuardDashboard = ({ navigation }: any) => {
             </View>
             <View className="bg-white dark:bg-zinc-900 rounded-lg border border-gray-100 dark:border-zinc-800 shadow-sm overflow-hidden p-1">
               {nprLogs.length > 0 ? (
-                nprLogs.map((plate, idx) => {
+                nprLogs.slice(0, 4).map((plate, idx) => {
                   const isExited = plate.status === 'exited';
                   return (
                     <View key={plate._id} className={`p-3 rounded-lg mb-1 flex-row items-center border ${!isExited ? 'bg-green-50 dark:bg-green-900/20 border-green-100 dark:border-green-800/40' : 'bg-gray-50 dark:bg-zinc-900/20 border-gray-100 dark:border-zinc-800/40'}`}>
@@ -834,7 +1015,6 @@ const GuardDashboard = ({ navigation }: any) => {
                       value={visitorUnit}
                       onChangeText={setVisitorUnit}
                       placeholder="e.g. 402"
-                      keyboardType="numeric"
                       placeholderTextColor={colorScheme === 'dark' ? '#71717A' : "#9CA3AF"}
                       className="bg-gray-50 dark:bg-zinc-800/50 px-5 py-4 rounded-2xl border border-gray-200 dark:border-zinc-700 text-gray-900 dark:text-zinc-50 font-satoshi-medium"
                     />
@@ -875,6 +1055,326 @@ const GuardDashboard = ({ navigation }: any) => {
             </ScrollView>
           </View>
         </View>
+      </Modal>
+
+      {/* Registered / Authorized Vehicle Modal */}
+      <Modal visible={authorizedVehicleModalVisible} animationType="slide" transparent={true}>
+        <View style={styles.modalOverlay}>
+          <View className="bg-white dark:bg-zinc-900 rounded-t-[40px] p-8 pb-10 w-full">
+            <View className="flex-row justify-between items-center mb-6">
+              <View className="flex-row items-center gap-x-2">
+                <ShieldCheck size={24} color="#10B981" />
+                <Text className="text-2xl font-satoshi-black text-gray-900 dark:text-zinc-50">Registered Vehicle</Text>
+              </View>
+              <TouchableOpacity onPress={() => setAuthorizedVehicleModalVisible(false)} className="w-10 h-10 bg-gray-100 dark:bg-zinc-800 rounded-full items-center justify-center">
+                <XCircle size={24} color="#64748B" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} className="max-h-[80%]">
+              <View className="bg-green-50 dark:bg-green-950/20 p-5 rounded-2xl border border-green-100 dark:border-green-900/30 mb-6 flex-row items-center justify-between">
+                <View>
+                  <Text className="text-green-800 dark:text-green-400 font-satoshi-black text-xs uppercase tracking-widest">
+                    {authorizedActivity?.action === 'EXIT' ? 'Vehicle Exit Scanned' : 'Authorized Entry Scanned'}
+                  </Text>
+                  <Text className="text-gray-900 dark:text-zinc-50 font-satoshi-black text-2xl mt-1 tracking-widest">
+                    {authorizedActivity?.plate_number}
+                  </Text>
+                  <View className="flex-row items-center mt-2">
+                    <View className={`px-3 py-1 rounded-full ${(authorizedActivity?.reason === 'AUTHORIZED RESIDENT' || authorizedActivity?.details?.residentId) ? 'bg-emerald-600' : 'bg-blue-600'}`}>
+                      <Text className="text-white font-satoshi-black text-[9px] uppercase tracking-wider">
+                        {(authorizedActivity?.reason === 'AUTHORIZED RESIDENT' || authorizedActivity?.details?.residentId) ? 'Legitimate Resident' : 'Legitimate Guest'}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+                <View className="w-12 h-12 bg-green-500 rounded-2xl items-center justify-center">
+                  <Unlock size={24} color="white" />
+                </View>
+              </View>
+
+              {authorizedActivity?.details?.plate_image && (
+                <View className="mb-6 rounded-2xl overflow-hidden border border-gray-100 dark:border-zinc-850">
+                  <Image
+                    source={{ uri: authorizedActivity.details.plate_image }}
+                    style={{ width: '100%', height: 120, resizeMode: 'cover' }}
+                  />
+                </View>
+              )}
+
+              <View className="gap-y-4 mb-6">
+                <View className="flex-row justify-between border-b border-gray-100 dark:border-zinc-800/60 pb-3">
+                  <Text className="text-gray-400 dark:text-zinc-500 font-satoshi-bold text-xs uppercase">Vehicle Owner</Text>
+                  <Text className="text-gray-950 dark:text-zinc-50 font-satoshi-black text-base">
+                    {authorizedActivity?.details?.owner || 'Unknown'}
+                  </Text>
+                </View>
+
+                <View className="flex-row justify-between border-b border-gray-100 dark:border-zinc-800/60 pb-3">
+                  <Text className="text-gray-400 dark:text-zinc-500 font-satoshi-bold text-xs uppercase">Visiting/Resident Unit</Text>
+                  <Text className="text-gray-950 dark:text-zinc-50 font-satoshi-black text-base">
+                    Flat {authorizedActivity?.details?.unit || 'N/A'}
+                  </Text>
+                </View>
+
+                <View className="flex-row justify-between border-b border-gray-100 dark:border-zinc-800/60 pb-3">
+                  <Text className="text-gray-400 dark:text-zinc-500 font-satoshi-bold text-xs uppercase">Category</Text>
+                  <Text className="text-gray-950 dark:text-zinc-50 font-satoshi-black text-base">
+                    {authorizedActivity?.reason === 'AUTHORIZED RESIDENT' || authorizedActivity?.details?.residentId ? 'Legitimate Resident' : 'Authorized Visitor'}
+                  </Text>
+                </View>
+
+                {authorizedActivity?.details?.vehicle_details && (
+                  <View className="flex-row justify-between border-b border-gray-100 dark:border-zinc-800/60 pb-3">
+                    <Text className="text-gray-400 dark:text-zinc-500 font-satoshi-bold text-xs uppercase">Vehicle Info</Text>
+                    <Text className="text-gray-950 dark:text-zinc-50 font-satoshi-medium text-sm">
+                      {authorizedActivity.details.vehicle_details}
+                    </Text>
+                  </View>
+                )}
+
+                <View className="flex-row justify-between pb-3">
+                  <Text className="text-gray-400 dark:text-zinc-500 font-satoshi-bold text-xs uppercase">Scan Timestamp</Text>
+                  <Text className="text-gray-950 dark:text-zinc-50 font-satoshi-medium text-sm">
+                    {authorizedActivity?.timestamp ? formatTime(authorizedActivity.timestamp) : formatTime(new Date().toISOString())}
+                  </Text>
+                </View>
+              </View>
+
+              <TouchableOpacity
+                onPress={() => setAuthorizedVehicleModalVisible(false)}
+                className="bg-green-600 p-5 rounded-2xl items-center shadow-lg shadow-green-500/30 flex-row justify-center gap-x-2"
+              >
+                <Check size={20} color="white" />
+                <Text className="text-white font-satoshi-black text-lg">ACCESS GRANTED</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* OmniSearch Overlay Modal */}
+      <Modal visible={showSearch} transparent animationType="slide" onRequestClose={() => setShowSearch(false)}>
+        <SafeAreaView className="flex-1 bg-white dark:bg-zinc-950">
+          {/* Search Header Bar */}
+          <View className="flex-row items-center px-6 py-4 border-b border-gray-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm z-10">
+            <View className="flex-1 flex-row items-center bg-gray-50 dark:bg-zinc-950 px-4 py-1.5 rounded-full border border-gray-200 dark:border-zinc-800 shadow-sm mr-4">
+              <Search size={20} color={colorScheme === 'dark' ? '#94A3B8' : '#64748B'} strokeWidth={2} />
+              <TextInput
+                placeholder="Search tools, residents, shifts..."
+                placeholderTextColor={colorScheme === 'dark' ? '#52525B' : '#94A3B8'}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                autoFocus
+                className="flex-1 h-10 text-left px-3 text-base font-satoshi-medium text-gray-900 dark:text-zinc-50"
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setSearchQuery('')} className="p-1">
+                  <X size={16} color={colorScheme === 'dark' ? '#94A3B8' : '#64748B'} />
+                </TouchableOpacity>
+              )}
+            </View>
+            <TouchableOpacity onPress={() => setShowSearch(false)} className="py-2.5">
+              <Text className="text-sm font-satoshi-bold text-blue-600">Cancel</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Search Content */}
+          <ScrollView className="flex-1 px-6 pt-4" keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+            {searching && (
+              <View className="items-center py-6">
+                <ActivityIndicator color="#2563EB" />
+              </View>
+            )}
+
+            {/* --- Category: Tools & Shortcuts --- */}
+            {searchResults.tools.length > 0 && (
+              <View className="mb-6">
+                <Text className="text-gray-400 dark:text-zinc-500 font-satoshi-bold text-[11px] uppercase tracking-widest mb-3">Tools & Shortcuts</Text>
+                {searchResults.tools.map((tool: any, index: number) => (
+                  <TouchableOpacity
+                    key={index}
+                    onPress={() => {
+                      setShowSearch(false);
+                      stackNavigation.navigate(tool.screen);
+                    }}
+                    activeOpacity={0.7}
+                    className="flex-row items-center justify-between p-4 mb-3 bg-gray-50 dark:bg-zinc-900 rounded-2xl border border-gray-100 dark:border-zinc-800"
+                  >
+                    <View className="flex-1">
+                      <Text className="text-gray-900 dark:text-zinc-50 font-satoshi-bold text-base">{tool.label}</Text>
+                      <Text className="text-gray-400 dark:text-zinc-500 text-[11px] font-satoshi-medium mt-1 leading-snug">{tool.description}</Text>
+                    </View>
+                    <ChevronRight size={18} color={colorScheme === 'dark' ? '#94A3B8' : '#94A3B8'} />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
+            {/* --- Category: Residents Directory --- */}
+            {searchResults.residents.length > 0 && (
+              <View className="mb-6">
+                <Text className="text-gray-400 dark:text-zinc-500 font-satoshi-bold text-[11px] uppercase tracking-widest mb-3">Residents Directory</Text>
+                {searchResults.residents.map((res: any, index: number) => (
+                  <TouchableOpacity
+                    key={index}
+                    onPress={() => {
+                      setShowSearch(false);
+                      Alert.alert(
+                        'Resident Profile',
+                        `Name: ${res.full_name}\nHouse: Flat ${res.house_number || 'N/A'}\nPhone: ${res.phone || 'N/A'}\nStatus: ${res.status || 'Active'}`,
+                        [{ text: 'Close', style: 'cancel' }]
+                      );
+                    }}
+                    activeOpacity={0.7}
+                    className="flex-row items-center justify-between p-4 mb-3 bg-gray-50 dark:bg-zinc-900 rounded-2xl border border-gray-100 dark:border-zinc-800"
+                  >
+                    <View className="flex-row items-center flex-1">
+                      <View className="w-10 h-10 bg-blue-50 dark:bg-blue-900/40 rounded-xl items-center justify-center mr-4">
+                        <User size={20} color="#2563EB" />
+                      </View>
+                      <View className="flex-1">
+                        <Text className="text-gray-900 dark:text-zinc-50 font-satoshi-bold text-base">{res.full_name}</Text>
+                        <Text className="text-gray-400 dark:text-zinc-500 text-[11px] font-satoshi-medium mt-0.5">Flat No: {res.house_number || 'N/A'}</Text>
+                      </View>
+                    </View>
+                    <ChevronRight size={18} color={colorScheme === 'dark' ? '#94A3B8' : '#94A3B8'} />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+
+      {/* Notifications Center Modal */}
+      <Modal visible={showNotifications} transparent animationType="slide" onRequestClose={() => setShowNotifications(false)}>
+        <SafeAreaView className="flex-1 bg-white dark:bg-zinc-950">
+          {/* Header */}
+          <View className="flex-row items-center justify-between px-4 py-5 border-b border-gray-100 dark:border-zinc-900 bg-white dark:bg-zinc-900 shadow-sm">
+            <View className="flex-row items-center gap-x-1">
+              <TouchableOpacity onPress={() => setShowNotifications(false)} className="p-1">
+                <ArrowLeft size={24} color={colorScheme === 'dark' ? '#fafafa' : '#1f2937'} />
+              </TouchableOpacity>
+              <Text className="text-gray-900 dark:text-zinc-50 font-satoshi-bold text-2xl tracking-tight">Notifications</Text>
+            </View>
+            <View className="flex-row items-center gap-x-1">
+              <TouchableOpacity onPress={handleMarkAllRead} className="px-2 py-1 bg-gray-50 dark:bg-zinc-850 rounded-full border border-gray-150 dark:border-zinc-800">
+                <Text className="text-[#2563EB] dark:text-[#2563EB] font-satoshi-bold text-[10px] uppercase">Mark as Read</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleClearAll} className="px-2 py-1 bg-red-50 dark:bg-red-950/20 rounded-full border border-red-100 dark:border-red-950/30">
+                <Text className="text-red-600 dark:text-red-400 font-satoshi-bold text-[10px] uppercase">Clear All</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Categories Horizontal Filter ScrollView */}
+          <View className="px-6 py-3 border-b border-gray-50 dark:border-zinc-900">
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+              {['All', 'SOS', 'Visitor', 'Notice', 'Complaint', 'Payment'].map((cat: any) => {
+                const count = cat === 'All' ? notifications.length : notifications.filter(n => n.category === cat).length;
+                const isSelected = notificationsFilter === cat;
+                return (
+                  <TouchableOpacity
+                    key={cat}
+                    onPress={() => setNotificationsFilter(cat)}
+                    className={`px-4 py-2 rounded-full flex-row items-center gap-x-1.5 border ${isSelected ? 'bg-blue-600 border-blue-600' : 'bg-gray-50 dark:bg-zinc-900 border-gray-150 dark:border-zinc-800'}`}
+                  >
+                    <Text className={`text-xs font-satoshi-bold uppercase tracking-wider ${isSelected ? 'text-white' : 'text-gray-500 dark:text-zinc-400'}`}>
+                      {cat}
+                    </Text>
+                    {count > 0 && (
+                      <View className={`px-1.5 py-0.5 rounded-full ${isSelected ? 'bg-white/20' : 'bg-gray-200 dark:bg-zinc-800'}`}>
+                        <Text className={`text-[10px] font-satoshi-bold ${isSelected ? 'text-white' : 'text-gray-600 dark:text-zinc-400'}`}>
+                          {count}
+                        </Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+
+          {/* Notifications List ScrollView */}
+          <ScrollView className="flex-1 px-6 bg-offWhite dark:bg-zinc-950 py-4" showsVerticalScrollIndicator={false}>
+            {notifications.filter(n => notificationsFilter === 'All' || n.category === notificationsFilter).length === 0 ? (
+              <View className="items-center justify-center py-24 px-8">
+                <View className="w-20 h-20 bg-neutral-100 dark:bg-zinc-900 rounded-full items-center justify-center mb-5 border-2 border-dashed border-gray-300 dark:border-zinc-700">
+                  <Bell size={32} color={colorScheme === 'dark' ? '#52525B' : '#9CA3AF'} />
+                </View>
+                <Text className="text-gray-900 dark:text-zinc-50 font-satoshi-bold text-lg text-center">You're all caught up!</Text>
+                <Text className="text-gray-400 dark:text-zinc-500 text-xs font-satoshi-medium text-center mt-2 px-10 leading-relaxed">
+                  No new alerts or system notifications for category "{notificationsFilter}" right now.
+                </Text>
+              </View>
+            ) : (
+              notifications.filter(n => notificationsFilter === 'All' || n.category === notificationsFilter).map((item) => {
+                // Category Styles
+                let icon = <Bell size={20} color="#64748B" />;
+                let badgeBg = 'bg-gray-100 dark:bg-zinc-800';
+                let cardBorder = 'border-gray-100 dark:border-zinc-800';
+                let glowDot = false;
+
+                if (item.category === 'SOS') {
+                  icon = <ShieldAlert size={20} color="#EF4444" />;
+                  badgeBg = 'bg-red-50 dark:bg-red-950/30';
+                  cardBorder = 'border-red-100 dark:border-red-950/50';
+                } else if (item.category === 'Visitor') {
+                  icon = <UserCheck size={20} color="#3B82F6" />;
+                  badgeBg = 'bg-blue-50 dark:bg-blue-950/30';
+                  cardBorder = 'border-blue-100 dark:border-blue-950/50';
+                } else if (item.category === 'Notice') {
+                  icon = <Megaphone size={20} color="#A855F7" />;
+                  badgeBg = 'bg-purple-50 dark:bg-purple-950/30';
+                  cardBorder = 'border-purple-100 dark:border-purple-950/50';
+                } else if (item.category === 'Complaint') {
+                  icon = <MessageSquareWarning size={20} color="#F59E0B" />;
+                  badgeBg = 'bg-amber-50 dark:bg-amber-950/30';
+                  cardBorder = 'border-amber-100 dark:border-amber-950/50';
+                } else if (item.category === 'Payment') {
+                  icon = <ReceiptText size={20} color="#10B981" />;
+                  badgeBg = 'bg-emerald-50 dark:bg-emerald-950/30';
+                  cardBorder = 'border-emerald-100 dark:border-emerald-950/50';
+                }
+
+                if (!item.isRead) {
+                  glowDot = true;
+                }
+
+                return (
+                  <View
+                    key={item._id}
+                    className={`bg-white dark:bg-zinc-900 rounded-2xl p-4 mb-4 border shadow-sm flex-row items-start ${cardBorder}`}
+                  >
+                    {glowDot && (
+                      <View className="w-2 h-2 rounded-full bg-blue-500 absolute top-4 left-3" />
+                    )}
+                    <View className={`w-10 h-10 rounded-full items-center justify-center mr-3 ${badgeBg} ${glowDot ? 'pl-1' : ''}`}>
+                      {icon}
+                    </View>
+                    <View className="flex-1">
+                      <View className="flex-row items-center justify-between">
+                        <Text className={`text-[10px] font-satoshi-bold uppercase tracking-widest ${item.category === 'SOS' ? 'text-red-500' : 'text-gray-400 dark:text-zinc-500'}`}>
+                          {item.category}
+                        </Text>
+                        <Text className="text-gray-400 dark:text-zinc-500 text-[10px] font-satoshi-medium">
+                          {new Date(item.createdAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                        </Text>
+                      </View>
+                      <Text className={`text-[15px] text-gray-900 dark:text-zinc-50 leading-snug mt-1 ${glowDot ? 'font-satoshi-bold' : 'font-satoshi-medium'}`}>
+                        {item.title}
+                      </Text>
+                      <Text className="text-gray-500 dark:text-zinc-400 text-xs font-satoshi-medium mt-1 leading-relaxed">
+                        {item.message}
+                      </Text>
+                    </View>
+                  </View>
+                );
+              })
+            )}
+          </ScrollView>
+        </SafeAreaView>
       </Modal>
     </SafeAreaView>
   );

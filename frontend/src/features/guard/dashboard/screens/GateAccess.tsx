@@ -70,16 +70,37 @@ const GateAccess = ({ navigation }: any) => {
 
   useEffect(() => {
     fetchRecent();
-    const baseUrl = getApiBaseUrl();
-    const socket = io(baseUrl);
-    socketRef.current = socket;
+    
+    let socket: Socket | null = null;
 
-    socket.on('gate_activity', (data: any) => {
-      setRecentDetections(prev => [data, ...prev].slice(0, 10));
-      setResult(data);
-      setShowResult(true);
-      setProcessStep('NPR MATCH FOUND');
-    });
+    const connectSocket = async () => {
+      try {
+        const raw = await AsyncStorage.getItem(SESSION_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed?.token) {
+            const baseUrl = getApiBaseUrl();
+            socket = io(baseUrl, {
+              transports: ['websocket'],
+              reconnection: true,
+              auth: { token: parsed.token }
+            });
+            socketRef.current = socket;
+
+            socket.on('gate_activity', (data: any) => {
+              setRecentDetections(prev => [data, ...prev].slice(0, 10));
+              setResult(data);
+              setShowResult(true);
+              setProcessStep('NPR MATCH FOUND');
+            });
+          }
+        }
+      } catch (e) {
+        console.log('[GateAccess] Socket connection error:', e);
+      }
+    };
+
+    connectSocket();
 
     Animated.loop(
       Animated.sequence([
@@ -88,7 +109,9 @@ const GateAccess = ({ navigation }: any) => {
       ])
     ).start();
 
-    return () => { socket.disconnect(); };
+    return () => {
+      if (socket) socket.disconnect();
+    };
   }, []);
 
   const handleVerify = async () => {
@@ -259,9 +282,17 @@ const GateAccess = ({ navigation }: any) => {
                 {result?.authorized ? <ShieldCheck size={40} color="#16A34A" /> : <ShieldAlert size={40} color="#E11D48" />}
              </View>
 
-             <Text className={`text-3xl font-satoshi-black mt-8 text-center ${result?.authorized ? 'text-green-600' : 'text-rose-600'}`}>
-                {result?.authorized ? 'ACCESS GRANTED' : 'ACCESS DENIED'}
-             </Text>
+              <Text className={`text-3xl font-satoshi-black mt-8 text-center ${result?.authorized ? 'text-green-600' : 'text-rose-600'}`}>
+                 {result?.authorized ? 'ACCESS GRANTED' : 'ACCESS DENIED'}
+              </Text>
+
+              {result?.authorized && (
+                <View className={`px-4 py-1.5 rounded-full mt-2 ${(result.reason === 'AUTHORIZED RESIDENT' || result.details?.residentId) ? 'bg-emerald-100 dark:bg-emerald-950/40' : 'bg-blue-100 dark:bg-blue-950/40'}`}>
+                  <Text className={`font-satoshi-bold text-xs uppercase tracking-widest ${(result.reason === 'AUTHORIZED RESIDENT' || result.details?.residentId) ? 'text-emerald-700 dark:text-emerald-400' : 'text-blue-700 dark:text-blue-400'}`}>
+                    {(result.reason === 'AUTHORIZED RESIDENT' || result.details?.residentId) ? 'Legitimate Resident' : 'Legitimate Guest'}
+                  </Text>
+                </View>
+              )}
              <Text className="text-zinc-400 text-center font-satoshi-medium mt-2 px-4">
                 {result?.authorized ? 'System recognized valid whitelist credentials.' : result?.reason || 'Vehicle entry is not authorized in current registry.'}
              </Text>
@@ -270,6 +301,7 @@ const GateAccess = ({ navigation }: any) => {
                 <View className="w-full mt-8 gap-y-3 bg-zinc-50 dark:bg-zinc-900 p-6 rounded-[32px]">
                    <View className="flex-row justify-between items-center"><Text className="text-zinc-400 text-[10px] font-satoshi-black uppercase">Identity</Text><Text className="text-zinc-950 dark:text-zinc-50 font-satoshi-black text-sm">{result.details?.owner}</Text></View>
                    <View className="flex-row justify-between items-center"><Text className="text-zinc-400 text-[10px] font-satoshi-black uppercase">Base Unit</Text><Text className="text-zinc-950 dark:text-zinc-50 font-satoshi-black text-sm">Flat {result.details?.unit}</Text></View>
+                   <View className="flex-row justify-between items-center"><Text className="text-zinc-400 text-[10px] font-satoshi-black uppercase">Category</Text><Text className="text-zinc-950 dark:text-zinc-50 font-satoshi-black text-sm">{(result.reason === 'AUTHORIZED RESIDENT' || result.details?.residentId) ? 'Legitimate Resident' : 'Authorized Visitor'}</Text></View>
                 </View>
              )}
 

@@ -416,7 +416,7 @@ const AdminProfile = ({ navigation }: any) => {
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
         {/* User Card */}
         {!isEditing ? (
-          <View className="mx-3 mt-2 mb-4 bg-white dark:bg-zinc-900 rounded-lg shadow-sm p-5 border border-gray-100 dark:border-zinc-800">
+          <View className="mx-3 mt-4 mb-4 bg-white dark:bg-zinc-900 rounded-lg shadow-sm p-5 border border-gray-100 dark:border-zinc-800">
             <View className="flex-row items-center">
               <Image
                 source={(profileData.image && !profileData.image.includes('default_avatar.png')) ? { uri: profileData.image } : DEFAULT_PROFILE}

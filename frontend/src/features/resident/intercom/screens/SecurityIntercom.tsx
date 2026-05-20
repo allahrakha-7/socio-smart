@@ -83,7 +83,7 @@ const SecurityIntercom = ({ navigation }: any) => {
 
   const formatDateTime = (dateStr: string) => {
     const d = new Date(dateStr);
-    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' ��� ' + d.toLocaleDateString([], { day: 'numeric', month: 'short' });
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' • ' + d.toLocaleDateString([], { day: 'numeric', month: 'short' });
   };
 
   return (
@@ -109,9 +109,9 @@ const SecurityIntercom = ({ navigation }: any) => {
             <TouchableOpacity
               onPress={handleCallSecurity}
               activeOpacity={0.8}
-              className="w-[48%] bg-white dark:bg-zinc-900 rounded-[28px] p-5 flex-row items-center border border-gray-100 dark:border-zinc-800 shadow-sm"
+              className="w-[48%] bg-white dark:bg-zinc-900 rounded-full p-5 flex-row items-center border border-gray-100 dark:border-zinc-800 shadow-sm"
             >
-              <View className="w-10 h-10 items-center justify-center mr-3">
+              <View className="w-10 h-10 items-center justify-center mr-1">
                 <PhoneCall size={19} color="#2563EB" />
               </View>
               <View>
@@ -123,7 +123,7 @@ const SecurityIntercom = ({ navigation }: any) => {
             <TouchableOpacity
               onPress={triggerPanicAlert}
               activeOpacity={0.8}
-              className="w-[48%] bg-rose-50 dark:bg-rose-900/10 rounded-[28px] p-5 flex-row items-center border border-rose-100 dark:border-rose-900/20 shadow-sm"
+              className="w-[48%] bg-rose-50 dark:bg-rose-900/10 rounded-full p-5 flex-row items-center border border-rose-100 dark:border-rose-900/20 shadow-sm"
             >
               <View className="w-10 h-10 items-center justify-center mr-3">
                 <ShieldAlert size={22} color="#E11D48" />

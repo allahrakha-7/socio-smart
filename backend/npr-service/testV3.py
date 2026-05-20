@@ -25,7 +25,31 @@ firebase_admin.initialize_app(cred, {
 #    car2 : 123
 #    car3 : 2024
 
+firebase_enabled = True
+
 def get_firebase_numbers():
+    global firebase_enabled
+    if not firebase_enabled:
+        # Fallback to direct REST API read if admin sdk credentials failed/expired
+        try:
+            import urllib.request
+            import json
+            with urllib.request.urlopen("https://car-scaning-default-rtdb.firebaseio.com/cars.json", timeout=3) as r:
+                data = json.loads(r.read().decode('utf-8'))
+                numbers = set()
+                if data:
+                    if isinstance(data, dict):
+                        for key, value in data.items():
+                            clean_num = re.sub(r'[^A-Z0-9]', '', str(value).upper())
+                            numbers.add(clean_num)
+                    elif isinstance(data, list):
+                        for value in data:
+                            if value is not None:
+                                clean_num = re.sub(r'[^A-Z0-9]', '', str(value).upper())
+                                numbers.add(clean_num)
+                return numbers
+        except Exception:
+            return set()
     try:
         ref = db.reference("cars")
         data = ref.get()
@@ -37,7 +61,12 @@ def get_firebase_numbers():
                 numbers.add(clean_num)
         return numbers
     except Exception as e:
-        print("Error fetching Firebase numbers:", e)
+        err_msg = str(e)
+        if "invalid_grant" in err_msg or "account not found" in err_msg or "auth" in err_msg.lower():
+            print("[Firebase RTDB] WARNING: Firebase service account credentials invalid or expired. Fallback database disabled.")
+            firebase_enabled = False
+        else:
+            print("Error fetching Firebase numbers:", e)
         return set()
 
 # ================= Backend API Helper =================
@@ -250,11 +279,12 @@ while True:
                 else:
                     print("NO MATCH - UNRECOGNIZED")
                     send_serial(0)
-                    try:
-                        db.reference("unrecognized").set(number)
-                        print("Synced unrecognized plate to Firebase")
-                    except Exception as fe:
-                        print("Firebase upload failed:", fe)
+                    if firebase_enabled:
+                        try:
+                            db.reference("unrecognized").set(number)
+                            print("Synced unrecognized plate to Firebase")
+                        except Exception as fe:
+                            print("Firebase upload failed:", fe)
 
             ready_to_scan = False
             wait_start = current_time

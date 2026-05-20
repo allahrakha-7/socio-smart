@@ -252,7 +252,7 @@ const AppSettings = ({ navigation }: any) => {
 
         <View className="mt-10 items-center px-10">
           <Text className="text-gray-400 dark:text-zinc-600 font-satoshi-medium text-[11px] text-center">
-            SocioSmart v1.2.0 ��� Build 42
+            SocioSmart v1.2.0 • Build 42
           </Text>
           <Text className="text-gray-300 dark:text-zinc-700 font-satoshi-medium text-[10px] text-center mt-1">
             Application settings are synchronized across devices linked to your society account.

@@ -944,7 +944,7 @@ const PostCard = memo(({ post, onLike, onVote, onAddComment, sessionUserId, sess
   const isAdmin = sessionRole?.toLowerCase() === 'admin';
 
   return (
-    <View className="bg-white dark:bg-zinc-900 rounded-[32px] p-5 mb-5 shadow-sm border border-neutral-50 dark:border-zinc-800">
+    <View className="bg-white dark:bg-zinc-900 rounded-xl p-5 mb-8 shadow-sm border border-neutral-50 dark:border-zinc-800">
       <PostOptionsModal
         visible={showOptions}
         onClose={() => setShowOptions(false)}
@@ -1156,7 +1156,7 @@ const ResidentDirectory = ({ residents, onMessage, onlineUsers, unreadCounts }: 
             {block} Block
           </Text>
           {groups[block].map((res: any) => (
-            <View key={res._id || Math.random()} className="flex-row items-center justify-between mb-5 bg-white dark:bg-zinc-900 p-2 rounded-2xl border border-transparent dark:border-zinc-800">
+            <View key={res._id || Math.random()} className="flex-row items-center justify-between mb-5 bg-white dark:bg-zinc-900 p-2 rounded-lg border border-transparent dark:border-zinc-800">
               <View className="flex-row items-center gap-x-4">
                 <Avatar role="resident" profileImage={res.profile_image} isOnline={onlineUsers.includes(res._id)} />
                 <View>
@@ -1631,7 +1631,7 @@ const PrivateChatModal = ({ visible, onClose, resident, socket, session, history
             )}
 
             <View className="flex-row items-end gap-x-3">
-              <View className="flex-1 bg-neutral-offWhite dark:bg-zinc-800/50 rounded-[28px] px-4 py-2 flex-row items-center border border-neutral-200/50 dark:border-zinc-700/50">
+              <View className="flex-1 bg-neutral-offWhite dark:bg-zinc-800/50 rounded-[28px] px-2 py-2 flex-row items-center border border-neutral-200/50 dark:border-zinc-700/50">
                 <TouchableOpacity
                   onPress={() => {
                     Keyboard.dismiss();
@@ -1673,7 +1673,7 @@ const PrivateChatModal = ({ visible, onClose, resident, socket, session, history
                 {isSending ? (
                   <ActivityIndicator color="white" />
                 ) : (
-                  <Send size={22} color="white" strokeWidth={2.5} />
+                  <Send size={22} color="white" strokeWidth={2} />
                 )}
               </TouchableOpacity>
             </View>

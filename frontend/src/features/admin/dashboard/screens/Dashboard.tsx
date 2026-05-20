@@ -293,9 +293,19 @@ const Dashboard = ({ navigation }: any) => {
   }, []);
 
   useEffect(() => {
+    if (!session?.token) return;
+
     const baseUrl = getApiBaseUrl();
-    const socket = io(baseUrl);
+    const socket = io(baseUrl, {
+      transports: ['websocket'],
+      reconnection: true,
+      auth: { token: session.token }
+    });
     socketRef.current = socket;
+
+    socket.on('connect', () => {
+      console.log('[Socket] Admin connected securely:', socket.id);
+    });
 
     socket.on('emergency_alert', (data) => {
       console.log('[Universal Emergency Hub] SOS Signal Received:', data);
@@ -324,7 +334,7 @@ const Dashboard = ({ navigation }: any) => {
     return () => {
       socket.disconnect();
     };
-  }, []);
+  }, [session?.token]);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {

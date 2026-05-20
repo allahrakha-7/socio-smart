@@ -103,11 +103,11 @@ const EmergencyContacts = ({ navigation }: any) => {
               </View>
               <View className="flex-row mt-4 pt-4 border-t border-white/10 items-center">
                 <View className="w-2 h-2 bg-green-400 rounded-full mr-2" />
-                <Text className="text-blue-50 font-satoshi-medium text-[11px]">Active Shift: {currentGuard.shift_start} ��� {currentGuard.shift_end}</Text>
+                <Text className="text-blue-50 font-satoshi-medium text-[11px]">Active Shift: {currentGuard.shift_start} • {currentGuard.shift_end}</Text>
               </View>
             </TouchableOpacity>
           ) : (
-            <View className="bg-orange-50 dark:bg-orange-900/10 p-6 rounded-[32px] border border-orange-100 dark:border-orange-900/20 flex-row items-center">
+            <View className="bg-orange-50 dark:bg-orange-900/10 p-6 rounded-lg border border-orange-100 dark:border-orange-900/20 flex-row items-center">
               <Info size={24} color="#EA580C" />
               <View className="ml-4">
                 <Text className="text-orange-900 dark:text-orange-400 font-satoshi-bold text-base">Security Rotation In-Progress</Text>

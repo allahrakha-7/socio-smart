@@ -2,6 +2,24 @@ import Vehicle from '../models/vehicleModel.js';
 import Resident from '../models/residentModel.js';
 import GateLog from '../models/gateLogModel.js';
 import Guard from '../models/guardModel.js';
+import axios from 'axios';
+
+const syncVehiclesToFirebase = async () => {
+  try {
+    const approvedVehicles = await Vehicle.find({ approval_status: 'approved' });
+    const payload = {};
+    approvedVehicles.forEach((v) => {
+      const cleanPlate = String(v.vehicle_number).toUpperCase().replace(/[^A-Z0-9]/g, '');
+      if (cleanPlate) {
+        payload[`car_${v._id}`] = cleanPlate;
+      }
+    });
+    await axios.put('https://car-scaning-default-rtdb.firebaseio.com/cars.json', payload);
+    console.log('[Firebase Sync] Approved vehicles successfully synced to Firebase RTDB');
+  } catch (error) {
+    console.log('[Firebase Sync] Sync warning:', error.message);
+  }
+};
 
 export const verifyVehicleAccess = async (req, res) => {
   try {
@@ -95,6 +113,9 @@ export const createVehicle = async (req, res) => {
     });
 
     res.status(201).json(vehicle);
+    if (vehicle.approval_status === 'approved') {
+      syncVehiclesToFirebase();
+    }
   } catch (error) {
     if (error.code === 11000) {
       return res.status(400).json({ message: 'Vehicle number or RFID tag already exists' });
@@ -118,6 +139,7 @@ export const updateVehicle = async (req, res) => {
     const vehicle = await Vehicle.findByIdAndUpdate(id, req.body, { new: true });
     if (!vehicle) return res.status(404).json({ message: 'Vehicle not found' });
     res.status(200).json(vehicle);
+    syncVehiclesToFirebase();
   } catch (error) {
     res.status(500).json({ message: 'Error updating vehicle' });
   }
@@ -138,6 +160,7 @@ export const deleteVehicle = async (req, res) => {
     const vehicle = await Vehicle.findByIdAndDelete(id);
     if (!vehicle) return res.status(404).json({ message: 'Vehicle not found' });
     res.status(200).json({ message: 'Vehicle deleted successfully' });
+    syncVehiclesToFirebase();
   } catch (error) {
     res.status(500).json({ message: 'Error deleting vehicle' });
   }
@@ -164,6 +187,7 @@ export const approveVehicle = async (req, res) => {
 
     if (!vehicle) return res.status(404).json({ message: 'Vehicle not found' });
     res.status(200).json(vehicle);
+    syncVehiclesToFirebase();
   } catch (error) {
     res.status(500).json({ message: 'Error approving vehicle' });
   }

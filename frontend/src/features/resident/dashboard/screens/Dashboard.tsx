@@ -8,7 +8,7 @@ import { getApiBaseUrl, default as api } from '../../../../utils/apiConfig';
 import BottomTab from '../../../../components/bottom-tab/BottomTab';
 import {
   Bell, Clock, Pin, ArrowRight, CheckCircle, Activity, User, ShieldCheck, ShieldAlert, PhoneCall, Search, Menu,
-  X, Megaphone, UserCheck, CheckCheck, Trash2, ReceiptText
+  X, Megaphone, UserCheck, CheckCheck, Trash2, ReceiptText, Car
 } from 'lucide-react-native';
 import DEFAULT_PROFILE from '../../../../assets/images/default_profile.jpg';
 
@@ -212,12 +212,13 @@ const ResidentDashboard = ({ navigation }: any) => {
   const [session, setSession] = useState<Session | null>(null);
   const stackNavigation = navigation?.getParent?.() ?? navigation;
   const [notices, setNotices] = useState<any[]>(DUMMY_NOTICES);
-  const [visitors, setVisitors] = useState<any[]>(DUMMY_VISITORS);
+  const [visitors, setVisitors] = useState<any[]>([]);
   const [complaints, setComplaints] = useState<any[]>(DUMMY_COMPLAINTS);
   const [stats, setStats] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [entryRequest, setEntryRequest] = useState<any>(null);
   const [isHandlingApproval, setIsHandlingApproval] = useState(false);
+  const [socket, setSocket] = useState<any>(null);
 
   // Notifications State & Logic
   const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
@@ -322,17 +323,33 @@ const ResidentDashboard = ({ navigation }: any) => {
   const fetchDashboardData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [nRes, cRes, vRes, sRes] = await Promise.all([
+      const [nRes, cRes, vRes, sRes, gRes] = await Promise.all([
         api.get('/api/notices'),
         api.get('/api/complaints/my'),
         api.get('/api/visitors/my-visitors'),
         api.get('/api/staff/stats'),
+        api.get('/api/gate/my')
       ]);
 
       setNotices(nRes.data?.length > 0 ? nRes.data : DUMMY_NOTICES);
       setComplaints(cRes.data?.length > 0 ? cRes.data : DUMMY_COMPLAINTS);
+      
       const filteredVisitors = vRes.data?.filter((v: any) => v.status === 'arrived' || v.status === 'inside') || [];
-      setVisitors(filteredVisitors.length > 0 ? filteredVisitors : DUMMY_VISITORS);
+      const activeGateLogs = gRes.data?.filter((g: any) => g.status === 'inside') || [];
+      
+      // Merge unique visitors
+      const merged = [...filteredVisitors];
+      for (const log of activeGateLogs) {
+        const exists = merged.some(m => 
+          (m.plate_number && log.vehicle_number && m.plate_number.replace(/[^A-Z0-9]/g, '') === log.vehicle_number.replace(/[^A-Z0-9]/g, '')) || 
+          m.name.toLowerCase() === log.name.toLowerCase()
+        );
+        if (!exists) {
+          merged.push(log);
+        }
+      }
+
+      setVisitors(merged);
       setStats(sRes.data);
 
       await viewAnnouncements();
@@ -344,6 +361,9 @@ const ResidentDashboard = ({ navigation }: any) => {
   }, []);
 
   useEffect(() => {
+    let interval: any;
+    let unsubscribeFocus: any;
+
     const load = async () => {
       const raw = await AsyncStorage.getItem(SESSION_KEY);
       if (raw) {
@@ -354,64 +374,14 @@ const ResidentDashboard = ({ navigation }: any) => {
             fetchDashboardData();
             checkNotifications();
 
-            // Connect to Socket.io for Real-time Guest Approvals & Notifications
-            const socket = io(getApiBaseUrl());
-            socket.on('connect', () => {
-              console.log('[Socket] Connected to backend');
-              socket.emit('join_community'); // For general notices
-              socket.emit('join_user', { userId: parsed.id || parsed._id }); // Private room for approvals (Wait, check login data field)
-            });
-
-            socket.on('adhoc_entry_request', (data) => {
-              console.log('[Socket] Guest Request Received:', data);
-              setEntryRequest(data);
-            });
-
-            socket.on('new_notice', (data) => {
-              console.log('[Socket] Resident received new notice:', data);
-              setHasUnreadNotifications(true);
-            });
-
-            socket.on('new_announcement', (data) => {
-              console.log('[Socket] Resident received new announcement:', data);
-              setHasUnreadNotifications(true);
-            });
-
-            socket.on('new_notification', (data) => {
-              console.log('[Socket] Resident received new system notification:', data);
-              setNotifications(prev => [data, ...prev]);
-              setHasUnreadNotifications(true);
-            });
-
-            socket.on('gate_activity', (data: any) => {
-              console.log('[Socket] Resident received gate activity:', data);
-              // Auto-refresh social presence list
-              fetchDashboardData();
-
-              // If it's this resident's vehicle or guest
-              if (data.authorized && data.details && (data.details.residentId === parsed.id || data.details.residentId === parsed._id)) {
-                const isGuest = data.details.make === 'Pre-Approved';
-                const msg = isGuest
-                  ? `Your guest (${data.details.owner}) has entered the society.`
-                  : `Your vehicle (${data.plate_number}) entered the society gate.`;
-                
-                Alert.alert("Gate Entry Notification", msg);
-              }
-            });
-
-            const interval = setInterval(() => {
+            interval = setInterval(() => {
               viewAnnouncements();
             }, 60000);
 
-            const unsubscribeFocus = navigation.addListener('focus', () => {
+            unsubscribeFocus = navigation.addListener('focus', () => {
               checkNotifications();
             });
-
-            return () => {
-              clearInterval(interval);
-              socket.disconnect();
-              unsubscribeFocus();
-            };
+            return;
           }
         } catch { }
       }
@@ -421,7 +391,82 @@ const ResidentDashboard = ({ navigation }: any) => {
     load().catch(() => {
       stackNavigation.reset({ index: 0, routes: [{ name: 'Login' }] });
     });
+
+    return () => {
+      if (interval) clearInterval(interval);
+      if (unsubscribeFocus) unsubscribeFocus();
+    };
   }, [stackNavigation, fetchDashboardData, navigation]);
+
+  useEffect(() => {
+    if (!session?.token) return;
+
+    // Connect to Socket.io for Real-time Guest Approvals & Notifications
+    const socketInst = io(getApiBaseUrl(), {
+      transports: ['websocket'],
+      reconnection: true,
+      auth: { token: session.token }
+    });
+    setSocket(socketInst);
+
+    socketInst.on('connect', () => {
+      console.log('[Socket] Connected to backend');
+      socketInst.emit('join_community'); // For general notices
+      socketInst.emit('join_user', { userId: session.id || session._id }); // Private room for approvals
+    });
+
+    socketInst.on('adhoc_entry_request', (data) => {
+      console.log('[Socket] Guest Request Received:', data);
+      setEntryRequest(data);
+    });
+
+    socketInst.on('new_notice', (data) => {
+      console.log('[Socket] Resident received new notice:', data);
+      setHasUnreadNotifications(true);
+    });
+
+    socketInst.on('new_announcement', (data) => {
+      console.log('[Socket] Resident received new announcement:', data);
+      setHasUnreadNotifications(true);
+    });
+
+    socketInst.on('new_notification', (data) => {
+      console.log('[Socket] Resident received new system notification:', data);
+      setNotifications(prev => [data, ...prev]);
+      setHasUnreadNotifications(true);
+    });
+
+    socketInst.on('gate_activity', (data: any) => {
+      console.log('[Socket] Resident received gate activity:', data);
+      // Auto-refresh social presence list
+      fetchDashboardData();
+
+      // If it's this resident's vehicle, pre-approved guest, or ad-hoc guest targeting their unit
+      const isMyUnit = data.details && (
+        data.details.residentId === session?.id ||
+        data.details.residentId === session?._id ||
+        (data.details.unit && String(data.details.unit).trim().toLowerCase() === String(session?.house_number).trim().toLowerCase())
+      );
+
+      if (data.authorized && isMyUnit) {
+        const isExit = data.action === 'EXIT';
+        const isGuest = data.details.make === 'Pre-Approved' || !data.details.residentId;
+        const msg = isExit
+          ? (isGuest
+              ? `Your guest (${data.details.owner}) has exited the society.`
+              : `Your vehicle (${data.plate_number}) has exited the society.`)
+          : (isGuest
+              ? `Your guest (${data.details.owner}) has entered the society.`
+              : `Your vehicle (${data.plate_number}) entered the society gate.`);
+        
+        Alert.alert("Gate Activity Notification", msg);
+      }
+    });
+
+    return () => {
+      socketInst.disconnect();
+    };
+  }, [session?.token, fetchDashboardData]);
 
   const name = session?.full_name ?? 'Resident';
 
@@ -497,13 +542,25 @@ const ResidentDashboard = ({ navigation }: any) => {
                   {visitors.slice(0, 8).map((v: any, index: number) => (
                     <View key={v._id || index} className="w-[22%] items-center mb-4">
                       <View className="w-16 h-16 bg-white/10 rounded-[22px] items-center justify-center border border-white/5 relative">
-                        <Text className="text-white font-satoshi-black text-xl">{v.name ? v.name.charAt(0) : '?'}</Text>
+                        {(v.plate_number || v.vehicle_number) ? (
+                          <Car size={24} color="white" />
+                        ) : (
+                          <User size={24} color="white" />
+                        )}
                         <View className="absolute -bottom-1 -right-1 bg-[#0B3BBE] p-1 rounded-lg border border-white/20">
-                          <User size={12} color="white" />
+                          {(v.plate_number || v.vehicle_number) ? (
+                            <Car size={10} color="white" />
+                          ) : (
+                            <User size={10} color="white" />
+                          )}
                         </View>
                       </View>
-                      <Text className="text-white font-satoshi-bold text-[10px] mt-2.5 w-full text-center" numberOfLines={1}>{v.name ? v.name.split(' ')[0] : 'Visitor'}</Text>
-                      <Text className="text-blue-100/50 font-satoshi-medium text-[8px] mt-0.5">{v.type || 'Guest'}</Text>
+                      <Text className="text-white font-satoshi-black text-[9px] mt-2.5 w-full text-center tracking-wider" numberOfLines={1}>
+                        {v.plate_number || v.vehicle_number || 'WALK-IN'}
+                      </Text>
+                      <Text className="text-blue-100/60 font-satoshi-bold text-[8px] mt-0.5 text-center" numberOfLines={1}>
+                        {v.name || 'Visitor'}
+                      </Text>
                     </View>
                   ))}
                 </View>

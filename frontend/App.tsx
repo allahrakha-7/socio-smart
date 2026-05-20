@@ -64,6 +64,30 @@ const LEGACY_ADMIN_SESSION_KEY = '@sociosmart/admin_session_v1';
 const App = () => {
   const [initialRouteName, setInitialRouteName] = useState<string | null>(null);
   const { setColorScheme } = useColorScheme();
+  const [isOffline, setIsOffline] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    const checkConnection = async () => {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3500);
+        await fetch('https://www.google.com', { method: 'HEAD', signal: controller.signal });
+        clearTimeout(timeoutId);
+        if (active) setIsOffline(false);
+      } catch (err) {
+        if (active) setIsOffline(true);
+      }
+    };
+
+    checkConnection();
+    const interval = setInterval(checkConnection, 6000);
+
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   useEffect(() => {
     const init = async () => {
@@ -164,60 +188,69 @@ const App = () => {
   };
 
   return (
-    <NavigationContainer ref={navigationRef} linking={linking}>
-      <Stack.Navigator initialRouteName={initialRouteName} screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="Onboarding" component={OnboardingScreens} />
-        <Stack.Screen name="Login" component={Login} />
-        <Stack.Screen name="SignUp" component={SignUp} />
-        <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
-        <Stack.Screen name="ResetPassword" component={ResetPassword} />
-        <Stack.Screen name="ApprovalPending" component={ApprovalPending} />
+    <View style={{ flex: 1 }}>
+      <NavigationContainer ref={navigationRef} linking={linking}>
+        <Stack.Navigator initialRouteName={initialRouteName} screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="Onboarding" component={OnboardingScreens} />
+          <Stack.Screen name="Login" component={Login} />
+          <Stack.Screen name="SignUp" component={SignUp} />
+          <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
+          <Stack.Screen name="ResetPassword" component={ResetPassword} />
+          <Stack.Screen name="ApprovalPending" component={ApprovalPending} />
 
-        {/* Admin Features */}
-        <Stack.Screen name="Dashboard" component={Dashboard} />
-        <Stack.Screen name="ManageUsers" component={ManageUsers} />
-        <Stack.Screen name="ManageStaff" component={ManageStaff} />
-        <Stack.Screen name="DutyRoster" component={DutyRoster} />
-        <Stack.Screen name="AdminProfile" component={AdminProfile} />
-        <Stack.Screen name="AdminAlerts" component={AdminAlerts} />
-        <Stack.Screen name="NoticeBoard" component={NoticeBoard} />
-        <Stack.Screen name="ManageAnnouncements" component={ManageAnnouncements} />
-        <Stack.Screen name="GateLogs" component={GateLogs} />
-        <Stack.Screen name="ManageComplaints" component={ManageComplaints} />
-        <Stack.Screen name="ReportDetails" component={ReportDetails} />
-        <Stack.Screen name="VehicleRegistry" component={VehicleRegistry} />
-        <Stack.Screen name="AppSettings" component={AppSettings} />
-        <Stack.Screen name="Legal" component={Legal} />
-        <Stack.Screen name="Support" component={Support} />
-        <Stack.Screen name="AdminPayments" component={AdminPayments} />
-        <Stack.Screen name="Household" component={Household} />
-        <Stack.Screen name="SearchVehicle" component={SearchVehicle} />
+          {/* Admin Features */}
+          <Stack.Screen name="Dashboard" component={Dashboard} />
+          <Stack.Screen name="ManageUsers" component={ManageUsers} />
+          <Stack.Screen name="ManageStaff" component={ManageStaff} />
+          <Stack.Screen name="DutyRoster" component={DutyRoster} />
+          <Stack.Screen name="AdminProfile" component={AdminProfile} />
+          <Stack.Screen name="AdminAlerts" component={AdminAlerts} />
+          <Stack.Screen name="NoticeBoard" component={NoticeBoard} />
+          <Stack.Screen name="ManageAnnouncements" component={ManageAnnouncements} />
+          <Stack.Screen name="GateLogs" component={GateLogs} />
+          <Stack.Screen name="ManageComplaints" component={ManageComplaints} />
+          <Stack.Screen name="ReportDetails" component={ReportDetails} />
+          <Stack.Screen name="VehicleRegistry" component={VehicleRegistry} />
+          <Stack.Screen name="AppSettings" component={AppSettings} />
+          <Stack.Screen name="Legal" component={Legal} />
+          <Stack.Screen name="Support" component={Support} />
+          <Stack.Screen name="AdminPayments" component={AdminPayments} />
+          <Stack.Screen name="Household" component={Household} />
+          <Stack.Screen name="SearchVehicle" component={SearchVehicle} />
 
-        {/* Resident Features */}
-        <Stack.Screen name="ResidentDashboard" component={ResidentDashboard} />
-        <Stack.Screen name="ResidentProfile" component={ResidentProfile} />
-        <Stack.Screen name="Complaints" component={Complaints} />
-        <Stack.Screen name="Visitors" component={Visitors} />
-        <Stack.Screen name="Payments" component={Payments} />
-        <Stack.Screen name="TrackComplaint" component={TrackComplaint} />
-        <Stack.Screen name="ResidentCategories" component={ResidentCategories} />
-        <Stack.Screen name="ResidentsInfo" component={ResidentsInfo} />
-        <Stack.Screen name="MyVehicles" component={MyVehicles} />
-        <Stack.Screen name="Amenities" component={Amenities} />
-        <Stack.Screen name="SecurityIntercom" component={SecurityIntercom} />
-        <Stack.Screen name="EmergencyContacts" component={EmergencyContacts} />
-        <Stack.Screen name="StaffDirectory" component={StaffDirectory} />
-        {/* Guard Features */}
-        <Stack.Screen name="GuardDashboard" component={GuardDashboard} />
-        <Stack.Screen name="GuardEntry" component={GuardEntry} />
-        <Stack.Screen name="GateAccess" component={GateAccess} />
-        <Stack.Screen name="GateOverride" component={GateOverride} />
-        <Stack.Screen name="GuestVerification" component={GuestVerification} />
+          {/* Resident Features */}
+          <Stack.Screen name="ResidentDashboard" component={ResidentDashboard} />
+          <Stack.Screen name="ResidentProfile" component={ResidentProfile} />
+          <Stack.Screen name="Complaints" component={Complaints} />
+          <Stack.Screen name="Visitors" component={Visitors} />
+          <Stack.Screen name="Payments" component={Payments} />
+          <Stack.Screen name="TrackComplaint" component={TrackComplaint} />
+          <Stack.Screen name="ResidentCategories" component={ResidentCategories} />
+          <Stack.Screen name="ResidentsInfo" component={ResidentsInfo} />
+          <Stack.Screen name="MyVehicles" component={MyVehicles} />
+          <Stack.Screen name="Amenities" component={Amenities} />
+          <Stack.Screen name="SecurityIntercom" component={SecurityIntercom} />
+          <Stack.Screen name="EmergencyContacts" component={EmergencyContacts} />
+          <Stack.Screen name="StaffDirectory" component={StaffDirectory} />
+          {/* Guard Features */}
+          <Stack.Screen name="GuardDashboard" component={GuardDashboard} />
+          <Stack.Screen name="GuardEntry" component={GuardEntry} />
+          <Stack.Screen name="GateAccess" component={GateAccess} />
+          <Stack.Screen name="GateOverride" component={GateOverride} />
+          <Stack.Screen name="GuestVerification" component={GuestVerification} />
 
-        {/* Shared */}
-        <Stack.Screen name="CommunityChat" component={CommunityChat} />
-      </Stack.Navigator>
-    </NavigationContainer>
+          {/* Shared */}
+          <Stack.Screen name="CommunityChat" component={CommunityChat} />
+        </Stack.Navigator>
+      </NavigationContainer>
+
+      {isOffline && (
+        <View className="absolute top-0 left-0 right-0 z-[9999] bg-[#DC2626] py-3.5 px-6 flex-row items-center justify-center border-b border-red-500/30 shadow-md">
+          <View className="w-2 h-2 rounded-full bg-white mr-2.5" />
+          <Text className="text-white font-satoshi-bold text-xs tracking-wider uppercase">Offline Mode • Check Internet Connection</Text>
+        </View>
+      )}
+    </View>
   );
 };
 

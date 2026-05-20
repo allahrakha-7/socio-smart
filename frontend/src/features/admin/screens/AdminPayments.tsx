@@ -107,8 +107,8 @@ const AdminPayments = ({ navigation }: any) => {
         <View className="px-5 mt-5">
           <Text className="text-gray-900 dark:text-zinc-50 font-satoshi-bold text-lg mb-4">Collection Reports</Text>
           <View className="flex-row flex-wrap justify-between">
-            <StatTile label="Total Revenue (Paid)" value={`��� ${totalRevenue}`} total={totalRevenue + totalDues} color="#16A34A" />
-            <StatTile label="Pending Dues" value={`��� ${totalDues}`} total={totalRevenue + totalDues} color="#EA580C" />
+            <StatTile label="Total Revenue (Paid)" value={`Rs. ${totalRevenue}`} total={totalRevenue + totalDues} color="#16A34A" />
+            <StatTile label="Pending Dues" value={`Rs. ${totalDues}`} total={totalRevenue + totalDues} color="#EA580C" />
             <StatTile label="Total Bills" value={payments.length} total={payments.length} color="#2563EB" />
             <StatTile label="Defaulters" value={defaultersCount} total={payments.length} color="#EF4444" />
           </View>
@@ -145,9 +145,9 @@ const AdminPayments = ({ navigation }: any) => {
                 <View className="flex-1 pr-4">
                   <Text className="text-gray-900 dark:text-zinc-50 font-satoshi-bold text-lg">{item.title}</Text>
                   <Text className="text-gray-500 dark:text-zinc-400 font-satoshi-medium text-xs mt-1">
-                    Unit {item.house_number} ��� {item.resident?.full_name}
+                    Unit {item.house_number} • {item.resident?.full_name}
                   </Text>
-                  <Text className="text-[#0F766E] dark:text-[#14B8A6] font-satoshi-black text-[16px] mt-2">��� {item.amount}</Text>
+                  <Text className="text-[#0F766E] dark:text-[#14B8A6] font-satoshi-black text-[16px] mt-2">Rs. {item.amount}</Text>
                 </View>
                 <View className="items-end">
                   <View className={`px-3 py-1.5 rounded-md mb-2 ${
@@ -188,7 +188,7 @@ const AdminPayments = ({ navigation }: any) => {
               <View className="mb-6 bg-gray-50 dark:bg-zinc-800/50 p-4 rounded-2xl border border-gray-100 dark:border-zinc-800">
                 <Text className="text-gray-500 dark:text-zinc-400 text-xs font-satoshi-bold uppercase tracking-widest mb-1">Resident Details</Text>
                 <Text className="text-gray-900 dark:text-zinc-50 font-satoshi-bold text-lg">{selectedPayment.resident?.full_name} (Unit {selectedPayment.house_number})</Text>
-                <Text className="text-gray-500 dark:text-zinc-400 text-xs font-satoshi-medium mt-1">Amount: ��� {selectedPayment.amount}</Text>
+                <Text className="text-gray-500 dark:text-zinc-400 text-xs font-satoshi-medium mt-1">Amount: Rs. {selectedPayment.amount}</Text>
                 {selectedPayment.receiptId && (
                   <Text className="text-blue-600 dark:text-blue-400 text-xs font-satoshi-bold mt-2">Receipt Uploaded: {selectedPayment.receiptId}</Text>
                 )}

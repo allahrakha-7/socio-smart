@@ -266,7 +266,7 @@ const ManageComplaints = ({ navigation }: any) => {
       </View>
 
       {/* UPDATED BLUE BOARD STYLING */}
-      <View className="px-5">
+      <View className="px-3 mt-2">
         <View className="bg-[#0B3BBE] rounded-lg p-5 shadow-sm">
           <View className="flex-row items-center justify-between">
             <View>

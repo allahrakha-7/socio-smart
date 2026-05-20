@@ -16,8 +16,8 @@ const formatTime = (iso: string) => {
   const date = new Date(iso);
   const now = new Date();
   const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  if (date.toDateString() === now.toDateString()) return `Today ��� ${timeStr}`;
-  return `${date.toLocaleDateString(undefined, { month: 'short', day: '2-digit' })} ��� ${timeStr}`;
+  if (date.toDateString() === now.toDateString()) return `Today • ${timeStr}`;
+  return `${date.toLocaleDateString(undefined, { month: 'short', day: '2-digit' })} • ${timeStr}`;
 };
 
 const StatTile = ({
@@ -161,8 +161,8 @@ const AdminAlerts = ({ navigation }: any) => {
       </View>
 
       {/* Blue Overview Card */}
-      <View className="px-5 mb-4">
-        <View className="bg-[#0B3BBE] rounded-[32px] p-5 shadow-sm">
+      <View className="px-3 mb-4 mt-2">
+        <View className="bg-[#0B3BBE] rounded-lg p-5 shadow-sm">
           <View className="flex-row items-center justify-between">
             <View>
               <Text className="text-white font-satoshi-bold text-base">Alerts Overview</Text>
@@ -254,8 +254,7 @@ const AdminAlerts = ({ navigation }: any) => {
               <View className="bg-white dark:bg-zinc-900 rounded-t-[32px] p-6 pb-10 shadow-2xl">
                 <View className="items-center mb-6">
                   <View className="w-12 h-1.5 bg-gray-200 dark:bg-zinc-800 rounded-full mb-4" />
-                  <View className={`w-16 h-16 rounded-full items-center justify-center mb-3 ${
-                    selectedAlert?.type === 'Emergency' || selectedAlert?.type === 'SOS' || selectedAlert?.type === 'Fire' || selectedAlert?.type === 'Medical' 
+                  <View className={`w-16 h-16 rounded-full items-center justify-center mb-3 ${selectedAlert?.type === 'Emergency' || selectedAlert?.type === 'SOS' || selectedAlert?.type === 'Fire' || selectedAlert?.type === 'Medical'
                     ? 'bg-red-50 dark:bg-red-900/30' : 'bg-blue-50 dark:bg-blue-900/30'}`}>
                     {selectedAlert?.type === 'Emergency' || selectedAlert?.type === 'SOS' || selectedAlert?.type === 'Fire' || selectedAlert?.type === 'Medical' ? (
                       <AlertOctagon size={32} color="#EF4444" />
@@ -265,7 +264,7 @@ const AdminAlerts = ({ navigation }: any) => {
                   </View>
                   <Text className="text-xl font-satoshi-bold text-gray-900 dark:text-zinc-50 text-center px-4">{selectedAlert?.title}</Text>
                   <Text className="text-sm font-satoshi-medium text-gray-500 dark:text-zinc-400 mt-1">
-                    {selectedAlert?.location} ��� {selectedAlert?.sender?.full_name || 'System'}
+                    {selectedAlert?.location} • {selectedAlert?.sender?.full_name || 'System'}
                   </Text>
                   <View className="mt-2 px-3 py-1 bg-red-100 dark:bg-red-900/40 rounded-md">
                     <Text className="text-red-600 dark:text-red-400 font-satoshi-bold text-xs uppercase tracking-widest">{selectedAlert?.type}</Text>
@@ -278,7 +277,7 @@ const AdminAlerts = ({ navigation }: any) => {
                       {selectedAlert?.description}
                     </Text>
                   </View>
-                  
+
                   <TouchableOpacity
                     activeOpacity={0.8}
                     onPress={() => {

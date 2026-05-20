@@ -88,11 +88,7 @@ const MyVehicles = ({ navigation }: any) => {
   }, [fetchVehicles]);
 
   const formatPlate = (text: string) => {
-    const cleaned = text.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-    if (cleaned.length > 3) {
-      return `${cleaned.slice(0, 3)}-${cleaned.slice(3, 7)}`;
-    }
-    return cleaned;
+    return text.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
   };
 
   const handleAddVehicle = async () => {

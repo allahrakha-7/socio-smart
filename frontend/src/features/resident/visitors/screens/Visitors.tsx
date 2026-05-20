@@ -94,11 +94,7 @@ const Visitors = ({ navigation }: any) => {
   };
 
   const formatPlate = (text: string) => {
-    const cleaned = text.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-    if (cleaned.length > 3) {
-      return `${cleaned.slice(0, 3)}-${cleaned.slice(3, 7)}`;
-    }
-    return cleaned;
+    return text.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
   };
 
   const addVisitor = async () => {
@@ -239,7 +235,7 @@ const Visitors = ({ navigation }: any) => {
                     </View>
                     <View className="ml-4 flex-1">
                       <Text className="text-gray-900 dark:text-zinc-50 font-satoshi-bold text-[17px]">{item.name}</Text>
-                      <Text className="text-gray-500 dark:text-zinc-400 text-xs font-satoshi-medium mt-0.5">{item.type} ��� {item.phone}</Text>
+                      <Text className="text-gray-500 dark:text-zinc-400 text-xs font-satoshi-medium mt-0.5">{item.type} • {item.phone}</Text>
                     </View>
                   </View>
 

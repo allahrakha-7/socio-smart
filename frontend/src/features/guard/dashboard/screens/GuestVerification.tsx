@@ -13,7 +13,7 @@ const GuestVerification = ({ navigation }: any) => {
   const [residents, setResidents] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [selectedResident, setSelectedResident] = useState<any>(null);
-  
+
   // Guest Info Form
   const [guestName, setGuestName] = useState('');
   const [guestPhone, setGuestPhone] = useState('');
@@ -75,12 +75,12 @@ const GuestVerification = ({ navigation }: any) => {
       </View>
 
       <ScrollView className="flex-1 px-6 pt-6" showsVerticalScrollIndicator={false}>
-        
+
         {/* 1. House Search */}
         <View className="mb-8">
           <Text className="text-xs font-satoshi-black text-gray-400 uppercase tracking-widest mb-3 ml-1">Step 1: Locate Resident</Text>
           <View className="flex-row items-center">
-            <View className="flex-1 flex-row items-center bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl px-4 py-3 shadow-sm">
+            <View className="flex-1 flex-row items-center bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-full px-3 py-2 shadow-sm">
               <Home size={18} color="#64748B" />
               <TextInput
                 placeholder="Enter House Number (e.g. 101)"
@@ -92,9 +92,9 @@ const GuestVerification = ({ navigation }: any) => {
                 onSubmitEditing={handleSearch}
               />
             </View>
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={handleSearch}
-              className="ml-3 w-14 h-14 bg-blue-600 rounded-2xl items-center justify-center shadow-md shadow-blue-500/30"
+              className="ml-3 w-14 h-14 bg-blue-600 rounded-full items-center justify-center shadow-md shadow-blue-500/30"
             >
               {isSearching ? <ActivityIndicator color="white" size="small" /> : <Search size={22} color="white" />}
             </TouchableOpacity>
@@ -134,10 +134,10 @@ const GuestVerification = ({ navigation }: any) => {
         {selectedResident && (
           <View className="mb-10 bg-white dark:bg-zinc-900 p-6 rounded-[32px] border border-gray-100 dark:border-zinc-800 shadow-sm">
             <Text className="text-xs font-satoshi-black text-gray-400 uppercase tracking-widest mb-6 border-b border-gray-50 dark:border-zinc-800 pb-3">Step 3: Guest Details</Text>
-            
+
             <View className="space-y-5">
-              <View>
-                <Text className="text-gray-500 dark:text-zinc-400 font-satoshi-bold text-[11px] mb-2 uppercase tracking-tighter">Visitor Name</Text>
+              <View className='mb-2'>
+                <Text className="text-gray-500 dark:text-zinc-400 font-satoshi-bold text-[11px] mb-2 uppercase tracking-tight">Visitor Name</Text>
                 <TextInput
                   placeholder="Enter Full Name"
                   placeholderTextColor={colorScheme === 'dark' ? '#52525B' : '#94A3B8'}
@@ -147,8 +147,8 @@ const GuestVerification = ({ navigation }: any) => {
                 />
               </View>
 
-              <View>
-                <Text className="text-gray-500 dark:text-zinc-400 font-satoshi-bold text-[11px] mb-2 uppercase tracking-tighter">Mobile Number</Text>
+              <View className='mb-2'>
+                <Text className="text-gray-500 dark:text-zinc-400 font-satoshi-bold text-[11px] mb-2 uppercase tracking-tight">Mobile Number</Text>
                 <TextInput
                   placeholder="Enter Contact Number"
                   placeholderTextColor={colorScheme === 'dark' ? '#52525B' : '#94A3B8'}
@@ -175,14 +175,14 @@ const GuestVerification = ({ navigation }: any) => {
                   onPress={() => handleRequestEntry(selectedResident)}
                   disabled={isSubmitting}
                   activeOpacity={0.8}
-                  className="bg-blue-600 w-full py-5 rounded-2xl flex-row items-center justify-center shadow-lg shadow-blue-500/40"
+                  className="bg-blue-600 w-full py-4 rounded-full flex-row items-center justify-center shadow-lg shadow-blue-500/40"
                 >
                   {isSubmitting ? (
                     <ActivityIndicator color="white" />
                   ) : (
                     <>
-                      <Phone size={20} color="white" />
-                      <Text className="text-white font-satoshi-black text-lg ml-3">CALL RESIDENT FOR APPROVAL</Text>
+                      <Phone size={18} color="white" />
+                      <Text className="text-white font-satoshi-bold text-sm ml-3">CONNECT RESIDENT FOR APPROVAL</Text>
                     </>
                   )}
                 </TouchableOpacity>

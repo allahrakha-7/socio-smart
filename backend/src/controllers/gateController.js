@@ -60,6 +60,49 @@ export const verifyGateAccess = async (req, res) => {
     const plate = String(plate_number).toUpperCase().trim();
     const cleanPlate = plate.replace(/[^A-Z0-9]/g, '');
     
+    // Check if the vehicle is already inside (Auto-Exit Flow)
+    const activeLogs = await GateLog.find({ status: 'inside' });
+    const matchingActiveLog = activeLogs.find(log => {
+      if (!log.vehicle_number) return false;
+      const dbPlate = String(log.vehicle_number).toUpperCase().replace(/[^A-Z0-9]/g, '');
+      return dbPlate === cleanPlate;
+    });
+
+    if (matchingActiveLog) {
+      matchingActiveLog.status = 'exited';
+      matchingActiveLog.exit_time = new Date();
+      await matchingActiveLog.save();
+
+      // Send MQTT Command to open gate for exit
+      mqttService.publishGateCommand('OPEN');
+
+      // Emit socket event so that dashboards refresh in real-time
+      const io = req.app.get('io');
+      if (io) {
+        io.emit('gate_activity', {
+          plate_number: plate,
+          authorized: true,
+          action: 'EXIT',
+          reason: `${matchingActiveLog.name} has exited the society`,
+          timestamp: matchingActiveLog.exit_time,
+          details: {
+            owner: matchingActiveLog.name,
+            unit: matchingActiveLog.unit_to_visit
+          }
+        });
+      }
+
+      return res.status(200).json({
+        authorized: true,
+        action: 'EXIT',
+        message: `${matchingActiveLog.name} exited successfully`,
+        details: {
+          owner: matchingActiveLog.name,
+          unit: matchingActiveLog.unit_to_visit
+        }
+      });
+    }
+
     // 1. Search Vehicle Database (Residents)
     const vehicles = await Vehicle.find().populate('owner', 'full_name house_number status');
     let vehicle = vehicles.find(v => {
@@ -225,7 +268,11 @@ export const createEntry = async (req, res) => {
         plate_number: log.vehicle_number || 'WALK_IN',
         authorized: true,
         reason: `${log.name} entered the society`,
-        timestamp: log.entry_time
+        timestamp: log.entry_time,
+        details: {
+          owner: log.name,
+          unit: log.unit_to_visit
+        }
       });
     }
 
@@ -246,8 +293,13 @@ export const markExit = async (req, res) => {
       io.emit('gate_activity', {
         plate_number: log.vehicle_number || 'WALK_IN',
         authorized: true,
+        action: 'EXIT',
         reason: `${log.name} has exited the society`,
-        timestamp: log.exit_time
+        timestamp: log.exit_time,
+        details: {
+          owner: log.name,
+          unit: log.unit_to_visit
+        }
       });
     }
 

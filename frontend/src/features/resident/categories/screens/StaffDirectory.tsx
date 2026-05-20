@@ -141,7 +141,7 @@ const StaffDirectory = ({ navigation }: any) => {
                   </View>
                   <View className="flex-1">
                     <Text className="text-white font-satoshi-black text-[18px]">{currentGuard.staff.full_name}</Text>
-                    <Text className="text-blue-100 font-satoshi-medium text-xs mt-1">Verified Security Roster ��� On Duty</Text>
+                    <Text className="text-blue-100 font-satoshi-medium text-xs mt-1">Verified Security Roster • On Duty</Text>
                   </View>
                   <TouchableOpacity
                     onPress={() => handleCall(currentGuard.staff.full_name, currentGuard.staff.phone)}
@@ -185,7 +185,7 @@ const StaffDirectory = ({ navigation }: any) => {
                       </View>
                       <View className="flex-1">
                         <Text className="text-gray-900 dark:text-zinc-50 font-satoshi-black text-[17px] leading-tight mb-1">{item.full_name}</Text>
-                        <Text className="text-gray-500 dark:text-zinc-400 font-satoshi-bold text-xs">{item.role} ��� {item.shift}</Text>
+                        <Text className="text-gray-500 dark:text-zinc-400 font-satoshi-bold text-xs">{item.role} • {item.shift}</Text>
                       </View>
                     </View>
                   </View>
@@ -198,7 +198,7 @@ const StaffDirectory = ({ navigation }: any) => {
                       </View>
                       {item.assignedTasks.slice(0, 2).map((task: any, i: number) => (
                         <Text key={i} className="text-blue-900 dark:text-blue-300 font-satoshi-medium text-xs mt-1" numberOfLines={1}>
-                          ��� {task.title} (Unit {task.resident?.house_number || 'Unknown'})
+                          ⚡ {task.title} (Unit {task.resident?.house_number || 'Unknown'})
                         </Text>
                       ))}
                     </View>

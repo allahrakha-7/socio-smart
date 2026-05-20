@@ -211,14 +211,14 @@ const Payments = ({ navigation }: any) => {
             <View>
               {/* Admin Statistics Row */}
               <View className="flex-row gap-x-4 mb-4">
-                <View className="flex-1 bg-white dark:bg-zinc-900 rounded-[32px] p-6 border border-gray-100 dark:border-zinc-800 shadow-sm">
+                <View className="flex-1 bg-white dark:bg-zinc-900 rounded-lg p-6 border border-gray-100 dark:border-zinc-800 shadow-sm">
                   <Text className="text-gray-400 font-satoshi-bold text-[10px] uppercase tracking-widest mb-1">Collection Efficiency</Text>
                   <Text className="text-blue-600 font-satoshi-black text-2xl">{stats.collectionRate.toFixed(1)}%</Text>
                   <View className="w-full h-1 bg-gray-50 dark:bg-zinc-800 rounded-full mt-3 overflow-hidden">
                     <View className="h-full bg-blue-600" style={{ width: `${stats.collectionRate}%` }} />
                   </View>
                 </View>
-                <View className="flex-1 bg-white dark:bg-zinc-900 rounded-[32px] p-6 border border-gray-100 dark:border-zinc-800 shadow-sm">
+                <View className="flex-1 bg-white dark:bg-zinc-900 rounded-lg p-6 border border-gray-100 dark:border-zinc-800 shadow-sm">
                   <Text className="text-gray-400 font-satoshi-bold text-[10px] uppercase tracking-widest mb-1">Unpaid Dues</Text>
                   <Text className="text-red-500 font-satoshi-black text-2xl">{stats.unpaidCount}</Text>
                   <Text className="text-gray-400 text-[10px] font-satoshi-medium mt-1">Found across society</Text>
@@ -226,13 +226,13 @@ const Payments = ({ navigation }: any) => {
               </View>
 
               {/* Revenue Overview Card */}
-              <View className="bg-zinc-950 dark:bg-zinc-900 rounded-[40px] p-8 shadow-2xl">
+              <View className="bg-zinc-950 dark:bg-zinc-900 rounded-lg p-8 shadow-2xl">
                 <View className="flex-row justify-between items-center mb-6">
                   <View>
                     <Text className="text-zinc-500 font-satoshi-bold text-xs uppercase tracking-widest mb-1">Total Revenue (This Month)</Text>
                     <Text className="text-white font-satoshi-black text-3xl">Rs. {stats.totalCollected.toLocaleString()}</Text>
                   </View>
-                  <View className="w-12 h-12 bg-white/10 rounded-2xl items-center justify-center">
+                  <View className="w-12 h-12 bg-white/10 rounded-lg items-center justify-center">
                     <Activity size={24} color="white" />
                   </View>
                 </View>
@@ -242,7 +242,7 @@ const Payments = ({ navigation }: any) => {
                     <Text className="text-red-400 font-satoshi-bold text-base italic">Rs. {stats.totalOutstanding.toLocaleString()}</Text>
                   </View>
                   <TouchableOpacity
-                    className="bg-blue-600 px-6 py-2.5 rounded-2xl"
+                    className="bg-blue-600 px-6 py-2.5 rounded-lg"
                     onPress={() => setActiveFilter('unpaid')}
                   >
                     <Text className="text-white font-satoshi-black text-[10px] uppercase">Identify Defaulters</Text>
@@ -252,17 +252,17 @@ const Payments = ({ navigation }: any) => {
             </View>
           ) : (
             /* Resident Summary Card */
-            <View className="bg-blue-600 dark:bg-blue-700 rounded-[40px] p-8 shadow-2xl shadow-blue-500/30">
+            <View className="bg-blue-600 dark:bg-blue-700 rounded-lg p-8 shadow-2xl shadow-blue-500/30">
               <View className="flex-row justify-between items-start mb-10">
                 <View>
                   <Text className="text-blue-100 font-satoshi-bold text-xs uppercase tracking-widest mb-1">Outstanding Balance</Text>
                   <Text className="text-white font-satoshi-black text-4xl">Rs. {stats.totalOutstanding.toLocaleString()}</Text>
                 </View>
-                <View className="w-12 h-12 bg-white/20 rounded-2xl items-center justify-center">
+                <View className="w-12 h-12 bg-white/20 rounded-lg items-center justify-center">
                   <Wallet size={24} color="white" />
                 </View>
               </View>
-              <View className="flex-row items-center bg-white/10 p-4 rounded-2xl border border-white/10">
+              <View className="flex-row items-center bg-white/10 p-4 rounded-lg border border-white/10">
                 <Clock size={18} color="white" />
                 <View className="ml-4">
                   <Text className="text-white font-satoshi-bold text-sm">
@@ -326,50 +326,50 @@ const Payments = ({ navigation }: any) => {
             <>
               {filteredPayments.map((item) => (
                 <TouchableOpacity
-              key={item._id}
-              activeOpacity={0.8}
-              onPress={() => handleItemClick(item)}
-              className="bg-white dark:bg-zinc-900 rounded-lg p-5 mb-4 border border-gray-100 dark:border-zinc-800 shadow-sm"
-            >
-              <View className="flex-row items-center">
-                <View className={`w-14 h-14 rounded-2xl items-center justify-center ${item.status === 'paid' ? 'bg-green-50/50' : item.status === 'pending' ? 'bg-blue-50/50' : 'bg-amber-50/50'}`}>
-                  <Receipt size={24} color={item.status === 'paid' ? '#10B981' : item.status === 'pending' ? '#2563EB' : '#F59E0B'} />
-                </View>
+                  key={item._id}
+                  activeOpacity={0.8}
+                  onPress={() => handleItemClick(item)}
+                  className="bg-white dark:bg-zinc-900 rounded-lg p-5 mb-4 border border-gray-100 dark:border-zinc-800 shadow-sm"
+                >
+                  <View className="flex-row items-center">
+                    <View className={`w-14 h-14 rounded-2xl items-center justify-center ${item.status === 'paid' ? 'bg-green-50/50' : item.status === 'pending' ? 'bg-blue-50/50' : 'bg-amber-50/50'}`}>
+                      <Receipt size={24} color={item.status === 'paid' ? '#10B981' : item.status === 'pending' ? '#2563EB' : '#F59E0B'} />
+                    </View>
 
-                <View className="flex-1 ml-4 pr-2">
-                  <Text className="text-gray-900 dark:text-zinc-50 font-satoshi-bold text-[15px]" numberOfLines={1}>
-                    {role === 'admin' ? item.resident?.full_name : item.title}
-                  </Text>
-                  <View className="flex-row items-center mt-1">
-                    {role === 'admin' ? (
-                      <View className="bg-gray-100 dark:bg-zinc-800 px-2 py-0.5 rounded-md mr-2">
-                        <Text className="text-gray-500 text-[8px] font-satoshi-black tracking-widest uppercase">House {item.resident?.house_number}</Text>
+                    <View className="flex-1 ml-4 pr-2">
+                      <Text className="text-gray-900 dark:text-zinc-50 font-satoshi-bold text-[15px]" numberOfLines={1}>
+                        {role === 'admin' ? item.resident?.full_name : item.title}
+                      </Text>
+                      <View className="flex-row items-center mt-1">
+                        {role === 'admin' ? (
+                          <View className="bg-gray-100 dark:bg-zinc-800 px-2 py-0.5 rounded-md mr-2">
+                            <Text className="text-gray-500 text-[8px] font-satoshi-black tracking-widest uppercase">House {item.resident?.house_number}</Text>
+                          </View>
+                        ) : (
+                          <Calendar size={10} color="#94A3B8" />
+                        )}
+                        <Text className="text-gray-400 text-[10px] font-satoshi-medium ml-1 uppercase">
+                          {item.month} {item.year}
+                        </Text>
                       </View>
-                    ) : (
-                      <Calendar size={10} color="#94A3B8" />
-                    )}
-                    <Text className="text-gray-400 text-[10px] font-satoshi-medium ml-1 uppercase">
-                      {item.month} {item.year}
-                    </Text>
-                  </View>
-                </View>
+                    </View>
 
-                <View className="items-end">
-                  <Text className="text-gray-900 dark:text-zinc-50 font-satoshi-black text-base">Rs. {item.amount.toLocaleString()}</Text>
-                  <View className="mt-2">
-                    {renderStatusBadge(item.status)}
+                    <View className="items-end">
+                      <Text className="text-gray-900 dark:text-zinc-50 font-satoshi-black text-base">Rs. {item.amount.toLocaleString()}</Text>
+                      <View className="mt-2">
+                        {renderStatusBadge(item.status)}
+                      </View>
+                    </View>
                   </View>
-                </View>
-              </View>
-            </TouchableOpacity>
-          ))}
+                </TouchableOpacity>
+              ))}
 
-          {filteredPayments.length === 0 && (
-            <View className="items-center justify-center py-20 bg-white/50 rounded-lg border border-dashed border-gray-200">
-              <Receipt size={40} color="#CBD5E1" />
-              <Text className="mt-4 text-gray-400 font-satoshi-medium">No ledger records found</Text>
-            </View>
-          )}
+              {filteredPayments.length === 0 && (
+                <View className="items-center justify-center py-20 bg-white/50 rounded-lg border border-dashed border-gray-200">
+                  <Receipt size={40} color="#CBD5E1" />
+                  <Text className="mt-4 text-gray-400 font-satoshi-medium">No ledger records found</Text>
+                </View>
+              )}
             </>
           )}
         </View>

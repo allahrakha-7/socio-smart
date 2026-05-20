@@ -81,7 +81,12 @@ const Support = ({ navigation }: any) => {
               {[
                 { q: "How do I pre-approve a visitor?", a: "Navigate to 'Visitor Management' on the home dashboard, tap 'Pre-Approve' and generate an entry code for your guest." },
                 { q: "When are payments verified?", a: "Admins verify manual payments within 24 hours of receipt submission. Ensure you provide a clear Receipt ID." },
-                { q: "How to book society amenities?", a: "Visit the 'Amenities' section, pick your facility and pick an available time slot." }
+                { q: "How to book society amenities?", a: "Visit the 'Amenities' section, pick your facility and pick an available time slot." },
+                { q: "Where do I report maintenance issues?", a: "Go to 'Complaints & Requests', submit a ticket with details/photos, and track updates in real-time." },
+                { q: "How do I update my vehicle's license plate details?", a: "Go to your 'Profile', tap on 'Manage Vehicles', and add/edit license plates. The AI NPR camera updates automatically." },
+                { q: "Can I change my registered phone number?", a: "Yes, under 'Profile Settings' select 'Edit Profile' and update your contact phone. Verify it via SMS OTP." },
+                { q: "What should I do in case of a medical emergency?", a: "Instantly press the red 'SOS Panic Button' on the main control board to alert on-duty gate guards and society emergency dispatchers." },
+                { q: "Can I view the society's financial ledgers?", a: "Annual/monthly ledger records can be viewed inside 'Payments & Ledgers' tab where transparency of fund collection is shared." }
               ].map((faq, idx) => (
                 <View key={idx} className={idx !== 0 ? "mt-6 pt-6 border-t border-gray-50 dark:border-zinc-800" : ""}>
                   <Text className="text-gray-900 dark:text-zinc-50 font-satoshi-bold text-sm mb-2">{faq.q}</Text>

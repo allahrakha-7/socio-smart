@@ -423,7 +423,7 @@ const ResidentProfile = ({ navigation }: any) => {
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
         {/* User Card */}
         {!isEditing ? (
-          <View className="mx-6 mt-2 mb-2 bg-white dark:bg-zinc-900 rounded-lg shadow-sm p-5 border border-gray-100 dark:border-zinc-800">
+          <View className="mx-3 mt-3 mb-3 bg-white dark:bg-zinc-900 rounded-lg shadow-sm p-5 border border-gray-100 dark:border-zinc-800">
             <View className="flex-row items-center">
               <View className="relative">
                 <Image
@@ -453,7 +453,7 @@ const ResidentProfile = ({ navigation }: any) => {
             </View>
           </View>
         ) : (
-          <View className="mx-6 mt-2 mb-6 bg-white dark:bg-zinc-900 rounded-lg shadow-sm p-5 border border-blue-100 dark:border-blue-900/40">
+          <View className="mx-3 mt-2 mb-3 bg-white dark:bg-zinc-900 rounded-lg shadow-sm p-5 border border-blue-100 dark:border-blue-900/40">
             <View className="flex-row items-center mb-5">
               <TouchableOpacity onPress={handlePickImage} activeOpacity={0.8} className="relative">
                 <Image
@@ -550,7 +550,7 @@ const ResidentProfile = ({ navigation }: any) => {
 
         {/* Identity & Health Section */}
         {!isEditing && (
-          <View className="mx-6 mb-6 overflow-hidden rounded-lg bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 shadow-sm">
+          <View className="mx-3 mb-3 overflow-hidden rounded-lg bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 shadow-sm">
             <View className="px-5 py-4 border-b border-gray-100 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-900/50 flex-row justify-between items-center">
               <Text className="text-gray-500 dark:text-zinc-500 font-satoshi-bold text-[12px] uppercase tracking-wider">Profile Details</Text>
             </View>
@@ -578,7 +578,7 @@ const ResidentProfile = ({ navigation }: any) => {
         )}
 
 
-        <View className="mx-6 mb-6 overflow-hidden rounded-lg bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 shadow-sm">
+        <View className="mx-3 mb-3 overflow-hidden rounded-lg bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 shadow-sm">
           <View className="px-5 py-4 border-b border-gray-100 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-900/50">
             <Text className="text-gray-500 dark:text-zinc-500 font-satoshi-bold text-[12px] uppercase tracking-wider">Household & Finance</Text>
           </View>
@@ -587,7 +587,7 @@ const ResidentProfile = ({ navigation }: any) => {
         </View>
 
         {/* Preferences */}
-        <View className="mx-6 mb-6 overflow-hidden rounded-[24px] bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 shadow-sm">
+        <View className="mx-3 mb-3 overflow-hidden rounded-lg bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 shadow-sm">
           <View className="px-5 py-4 border-b border-gray-100 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-900/50">
             <Text className="text-gray-500 dark:text-zinc-500 font-satoshi-bold text-[12px] uppercase tracking-wider">Preferences</Text>
           </View>
@@ -615,7 +615,7 @@ const ResidentProfile = ({ navigation }: any) => {
         </View>
 
         {/* More */}
-        <View className="mx-6 mb-6 overflow-hidden rounded-lg bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 shadow-sm">
+        <View className="mx-3 mb-3 overflow-hidden rounded-lg bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 shadow-sm">
           <View className="px-5 py-4 border-b border-gray-100 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-900/50">
             <Text className="text-gray-500 dark:text-zinc-500 font-satoshi-bold text-[12px] uppercase tracking-wider">More</Text>
           </View>

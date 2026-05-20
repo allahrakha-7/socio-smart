@@ -60,17 +60,19 @@ const GateOverride = ({ navigation }: any) => {
   }, []);
 
   const handleActuate = async () => {
-    const nextState = gateState === 'closed' ? 'open' : 'closed';
-
     setIsProcessing(true);
     try {
       const response = await api.post('/api/gate/manual-trigger', {
-        action: nextState.toUpperCase()
+        action: 'OPEN'
       });
 
       if (response.status === 200) {
-        setGateState(nextState);
+        setGateState('open');
         setOfflineMode(false);
+        // Automatically reset to closed state after 5 seconds
+        setTimeout(() => {
+          setGateState('closed');
+        }, 5000);
       } else {
         Alert.alert('Control Error', 'Failed to transmit override command.');
       }
@@ -118,8 +120,6 @@ const GateOverride = ({ navigation }: any) => {
           </View>
         </View>
 
-
-
         {/* Actuation Command Area */}
         <View className="gap-y-6">
           <View className="flex-row gap-x-4">
@@ -141,15 +141,15 @@ const GateOverride = ({ navigation }: any) => {
             onPress={handleActuate}
             disabled={isProcessing}
             activeOpacity={0.85}
-            className={`w-full py-5 mt-10 rounded-full items-center justify-center flex-row shadow-2xl ${gateState === 'closed' ? 'bg-blue-600 shadow-blue-500/20' : 'bg-rose-600 shadow-rose-500/20'}`}
+            className="w-full py-5 mt-10 rounded-full items-center justify-center flex-row shadow-2xl bg-blue-600 shadow-blue-500/20"
           >
             {isProcessing ? (
               <ActivityIndicator color="white" />
             ) : (
               <>
-                {gateState === 'closed' ? <Unlock size={24} color="white" /> : <Lock size={24} color="white" />}
+                <Unlock size={24} color="white" />
                 <Text className="text-white font-satoshi-bold text-xl ml-4 tracking-wide uppercase">
-                  COMMAND {gateState === 'closed' ? 'OPEN' : 'CLOSE'} GATE
+                  COMMAND OPEN GATE
                 </Text>
               </>
             )}

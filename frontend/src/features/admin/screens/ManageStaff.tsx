@@ -403,7 +403,7 @@ const ManageStaff = ({ navigation }: any) => {
 
       <ScrollView showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
         {/* Workforce Summary Board - Styled like GateLogs */}
-        <View className="px-5">
+        <View className="px-3 mt-2">
           <View className="bg-[#0B3BBE] rounded-lg p-5 shadow-sm">
             <View className="flex-row items-center justify-between">
               <View>
@@ -597,7 +597,7 @@ const ManageStaff = ({ navigation }: any) => {
                     <View className="flex-1">
                       <Text className="font-satoshi-bold text-gray-900 dark:text-zinc-50 text-base">{complaint.title}</Text>
                       <Text className="font-satoshi-medium text-gray-500 dark:text-zinc-400 text-xs mt-1">
-                        {complaint.category} ��� Unit {complaint.resident?.house_number || 'Unknown'}
+                        {complaint.category} • Unit {complaint.resident?.house_number || 'Unknown'}
                       </Text>
                     </View>
                     <View className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 items-center justify-center">
