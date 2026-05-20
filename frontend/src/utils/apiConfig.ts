@@ -6,6 +6,10 @@ const API_PORT = 5000;
 const FALLBACK_IP = '192.168.1.5';
 
 export const getApiBaseUrl = () => {
+  if (!__DEV__) {
+    return 'https://sociosmart-backend.onrender.com';
+  }
+
   const scriptURL: string | undefined = NativeModules?.SourceCode?.scriptURL;
   let host = 'localhost';
 
