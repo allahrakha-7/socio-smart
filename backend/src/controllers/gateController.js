@@ -58,9 +58,17 @@ export const verifyGateAccess = async (req, res) => {
     if (!plate_number) return res.status(400).json({ message: 'Plate number is required' });
 
     const plate = String(plate_number).toUpperCase().trim();
+    const cleanPlate = plate.replace(/[^A-Z0-9]/g, '');
     
     // 1. Search Vehicle Database (Residents)
-    let vehicle = await Vehicle.findOne({ vehicle_number: plate }).populate('owner', 'full_name house_number status');
+    const vehicles = await Vehicle.find().populate('owner', 'full_name house_number status');
+    let vehicle = vehicles.find(v => {
+      const dbPlate = String(v.vehicle_number).toUpperCase().replace(/[^A-Z0-9]/g, '');
+      if (dbPlate === cleanPlate) return true;
+      const dbDigits = dbPlate.replace(/[^0-9]/g, '');
+      const cleanDigits = cleanPlate.replace(/[^0-9]/g, '');
+      return dbDigits && cleanDigits && dbDigits === cleanDigits;
+    });
     
     let authorized = false;
     let details = null;
@@ -93,11 +101,18 @@ export const verifyGateAccess = async (req, res) => {
       const todayEnd = new Date();
       todayEnd.setHours(23, 59, 59, 999);
 
-      const visitor = await Visitor.findOne({ 
-        plate_number: plate, 
+      const visitors = await Visitor.find({ 
         status: 'pending',
         expected_date: { $gte: todayStart, $lte: todayEnd }
       }).populate('resident', 'full_name status');
+
+      const visitor = visitors.find(v => {
+        const dbPlate = String(v.plate_number).toUpperCase().replace(/[^A-Z0-9]/g, '');
+        if (dbPlate === cleanPlate) return true;
+        const dbDigits = dbPlate.replace(/[^0-9]/g, '');
+        const cleanDigits = cleanPlate.replace(/[^0-9]/g, '');
+        return dbDigits && cleanDigits && dbDigits === cleanDigits;
+      });
 
       if (visitor) {
         if (visitor.resident && visitor.resident.status !== 'active') {
@@ -204,6 +219,16 @@ export const createEntry = async (req, res) => {
       plate_image: vehicle_number ? `https://placehold.co/400x150/111827/FFFFFF?text=${String(vehicle_number).toUpperCase().trim()}` : undefined
     });
 
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('gate_activity', {
+        plate_number: log.vehicle_number || 'WALK_IN',
+        authorized: true,
+        reason: `${log.name} entered the society`,
+        timestamp: log.entry_time
+      });
+    }
+
     res.status(201).json(log);
   } catch (error) {
     res.status(500).json({ message: 'Error creating entry record' });
@@ -215,6 +240,17 @@ export const markExit = async (req, res) => {
     const { id } = req.params;
     const log = await GateLog.findByIdAndUpdate(id, { status: 'exited', exit_time: Date.now() }, { new: true });
     if (!log) return res.status(404).json({ message: 'Record not found' });
+
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('gate_activity', {
+        plate_number: log.vehicle_number || 'WALK_IN',
+        authorized: true,
+        reason: `${log.name} has exited the society`,
+        timestamp: log.exit_time
+      });
+    }
+
     res.status(200).json(log);
   } catch (error) {
     res.status(500).json({ message: 'Error marking exit' });
@@ -284,5 +320,21 @@ export const getRecentGateActivity = async (req, res) => {
     res.status(200).json(activity);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching recent activity' });
+  }
+};
+
+export const notifyGateScanning = async (req, res) => {
+  try {
+    const { plate_number } = req.body;
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('plate_scanning', {
+        plate_number: plate_number || 'UNKNOWN',
+        timestamp: new Date()
+      });
+    }
+    res.status(200).json({ success: true });
+  } catch (error) {
+    res.status(500).json({ message: 'Error emitting scanning event' });
   }
 };

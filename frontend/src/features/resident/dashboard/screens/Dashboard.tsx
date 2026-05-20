@@ -383,6 +383,22 @@ const ResidentDashboard = ({ navigation }: any) => {
               setHasUnreadNotifications(true);
             });
 
+            socket.on('gate_activity', (data: any) => {
+              console.log('[Socket] Resident received gate activity:', data);
+              // Auto-refresh social presence list
+              fetchDashboardData();
+
+              // If it's this resident's vehicle or guest
+              if (data.authorized && data.details && (data.details.residentId === parsed.id || data.details.residentId === parsed._id)) {
+                const isGuest = data.details.make === 'Pre-Approved';
+                const msg = isGuest
+                  ? `Your guest (${data.details.owner}) has entered the society.`
+                  : `Your vehicle (${data.plate_number}) entered the society gate.`;
+                
+                Alert.alert("Gate Entry Notification", msg);
+              }
+            });
+
             const interval = setInterval(() => {
               viewAnnouncements();
             }, 60000);

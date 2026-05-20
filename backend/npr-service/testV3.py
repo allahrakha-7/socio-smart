@@ -2,29 +2,52 @@ import cv2
 import pytesseract
 import re
 import time
-import json
-import urllib.request
+import serial
+import firebase_admin
+from firebase_admin import credentials, db
+import os
 
-# ================= Serial Connection with micro-controller =================
-serial_port = None
-try:
-    import serial
-    serial_port = serial.Serial('COM7', 9600, timeout=1)
-    print("[NPR System] Successfully opened COM7 serial connection.")
-except Exception as e:
-    print("[NPR System] Warning: Microcontroller COM7 serial port not found. Running in Emulation Mode.")
-
-# ================= Tesseract Path =================
+# ================= Tesseract =================
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
-# ================= Backend Configuration =================
-BACKEND_URL = 'http://localhost:5000/api/gate/verify'
+# ================= Firebase =================
+script_dir = os.path.dirname(os.path.abspath(__file__))
+cert_path = os.path.join(script_dir, "car-scaning-firebase-adminsdk-fbsvc-54503e6285.json")
+cred = credentials.Certificate(cert_path)
 
+firebase_admin.initialize_app(cred, {
+    'databaseURL': 'https://car-scaning-default-rtdb.firebaseio.com/'
+})
+
+# Firebase path:
+# cars/
+#    car1 : 5897
+#    car2 : 123
+#    car3 : 2024
+
+def get_firebase_numbers():
+    try:
+        ref = db.reference("cars")
+        data = ref.get()
+        numbers = set()
+        if data:
+            for key, value in data.items():
+                # Clean Firebase numbers to be alphanumeric
+                clean_num = re.sub(r'[^A-Z0-9]', '', str(value).upper())
+                numbers.add(clean_num)
+        return numbers
+    except Exception as e:
+        print("Error fetching Firebase numbers:", e)
+        return set()
+
+# ================= Backend API Helper =================
 def verify_plate_backend(plate_number):
     try:
+        import json
+        import urllib.request
         data = json.dumps({'plate_number': plate_number}).encode('utf-8')
         req = urllib.request.Request(
-            BACKEND_URL, 
+            'http://localhost:5000/api/gate/verify', 
             data=data, 
             headers={'Content-Type': 'application/json'}, 
             method='POST'
@@ -33,36 +56,81 @@ def verify_plate_backend(plate_number):
             res_data = json.loads(response.read().decode('utf-8'))
             return res_data.get('authorized', False)
     except Exception as e:
-        print(f"[NPR System] Backend communication error ({BACKEND_URL}):", e)
+        print("[NPR System] Warning: Local Backend API verify failed:", e)
         return False
+
+def notify_scanning_backend(plate_number):
+    try:
+        import json
+        import urllib.request
+        data = json.dumps({'plate_number': plate_number}).encode('utf-8')
+        req = urllib.request.Request(
+            'http://localhost:5000/api/gate/scanning', 
+            data=data, 
+            headers={'Content-Type': 'application/json'}, 
+            method='POST'
+        )
+        with urllib.request.urlopen(req, timeout=1.5) as response:
+            return True
+    except Exception as e:
+        return False
+
+# ================= Serial =================
+try:
+    serial_port = serial.Serial('COM7', 9600, timeout=1)
+    print("[Serial] Connected successfully on COM7")
+except Exception as e:
+    print("[Serial] WARNING: COM7 port unavailable. Running in Simulation/Camera mode.")
+    serial_port = None
+
+# ================= Firebase Listener =================
+def gate_command_listener(event):
+    if event.data == "open":
+        print("[Firebase Listener] Received OPEN command from cloud!")
+        send_serial(1)
+        try:
+            db.reference("gateControl/command").set("closed")
+        except Exception as ex:
+            print("Failed to reset gate command:", ex)
+
+try:
+    db.reference("gateControl/command").listen(gate_command_listener)
+    print("[Firebase RTDB] Listening for gateControl/command updates.")
+except Exception as le:
+    print("[Firebase RTDB] Streaming listener failed, falling back to camera scanning only:", le)
 
 # ================= Variables =================
 MIN_WIDTH = 100
 MIN_HEIGHT = 40
 
 last_detected_number = ""
+
 ready_to_scan = True
 wait_start = 0
 wait_time = 5
 
-# ================= Camera Setup =================
+# ================= Camera =================
 cap = cv2.VideoCapture(0)
-camera_active = False
-if cap.isOpened():
-    cap.set(3, 640)
-    cap.set(4, 480)
-    camera_active = True
-    print("[NPR System] Webcam initialized successfully.")
-else:
-    print("[NPR System] Warning: Camera not detected. Switched to CLI Simulation Mode.")
+cap.set(3, 640)
+cap.set(4, 480)
+
 
 # ================= OCR FUNCTION =================
 def detect_plate():
-    if not camera_active:
-        return None, None
-
     success, img = cap.read()
-    if not success:
+
+    if not success or img is None:
+        import numpy as np
+        img = np.zeros((480, 640, 3), dtype=np.uint8)
+        cv2.putText(
+            img,
+            "No Camera Detected (Press 'i' to simulate scan)",
+            (50, 240),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.6,
+            (0, 0, 255),
+            2
+        )
         return None, img
 
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -78,9 +146,13 @@ def detect_plate():
             x,y,w,h = cv2.boundingRect(approx)
 
             if w >= MIN_WIDTH and h >= MIN_HEIGHT:
+
                 ratio = w/h
+
                 if 2 < ratio < 5:
+
                     cv2.rectangle(img,(x,y),(x+w,y+h),(0,255,0),2)
+
                     roi = img[y:y+h, x:x+w]
 
                     gray_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
@@ -99,115 +171,129 @@ def detect_plate():
                         cv2.THRESH_BINARY
                     )
 
-                    try:
-                        config = r'--oem 3 --psm 7 -c tessedit_char_whitelist=0123456789'
-                        text = pytesseract.image_to_string(
-                            gray_roi,
-                            config=config
-                        ).strip()
-                        text = re.sub(r'[^0-9]', '', text)
-                        return text, img
-                    except Exception as ocr_err:
-                        # Fallback if tesseract OCR executable is not found
-                        pass
+                    config = r'--oem 3 --psm 7 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+                    text = pytesseract.image_to_string(
+                        gray_roi,
+                        config=config
+                    ).strip()
+
+                    text = re.sub(r'[^A-Z0-9]', '', text.upper())
+
+                    return text, img
 
     return None, img
+
 
 # ================= SERIAL FUNCTION =================
 def send_serial(data):
     if serial_port:
         try:
             serial_port.write(f"{data}\n".encode())
-            print(f"[NPR System] Transmitted serial signal: {data}")
+            print("Sent to Arduino:", data)
         except Exception as e:
-            print("[NPR System] Serial transmission error:", e)
+            print("Serial write error:", e)
     else:
-        print(f"[NPR System] Emulated Serial Signal sent: {data}")
+        print("[Simulation Mode] Actuated gate control command:", data)
+
 
 # ================= MAIN LOOP =================
-print("\n" + "="*50)
-print("SocioSmart Automated NPR Gate Cam Simulator")
-print("="*50)
-if camera_active:
-    print("- Press 'q' on the camera output window to exit.")
-    print("- Press 'i' on the camera window to enter a simulated plate number.")
-else:
-    print("- Running in terminal CLI simulation-only mode.")
-print("="*50 + "\n")
+simulated_number = None
 
 while True:
+
+    # Firebase se latest numbers fetch
+    stored_numbers = get_firebase_numbers()
+
+    number, frame = detect_plate()
+
+    if simulated_number:
+        number = simulated_number
+        simulated_number = None
+
     current_time = time.time()
 
-    if camera_active:
-        number, frame = detect_plate()
+    if ready_to_scan:
 
-        if ready_to_scan:
-            if number:
-                print(f"[NPR System] Scanned Plate: {number}")
-                is_authorized = verify_plate_backend(number)
-                if is_authorized:
-                    print("MATCH FOUND - ACCESS GRANTED")
-                    send_serial(1)
-                else:
-                    print("NO MATCH - ACCESS DENIED")
-                    send_serial(0)
+        if number:
+            print("Detected:", number)
+            print("Firebase Numbers:", stored_numbers)
 
-                ready_to_scan = False
-                wait_start = current_time
-        else:
-            remaining = wait_time - (current_time - wait_start)
-            if frame is not None:
-                cv2.putText(
-                    frame,
-                    f"Waiting: {int(remaining)}s",
-                    (50,50),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    1,
-                    (0,0,255),
-                    2
-                )
-            if remaining <= 0:
-                ready_to_scan = True
-                print("[NPR System] Rescan Ready")
+            # Inform the dashboard that we are scanning/analyzing this number
+            notify_scanning_backend(number)
 
-        if frame is not None:
-            cv2.imshow("Result", frame)
+            # Try backend verification first to allow socket triggers & notification flows
+            authorized = verify_plate_backend(number)
 
-        key = cv2.waitKey(1) & 0xFF
-        if key == ord('q'):
-            break
-        elif key == ord('i'):
-            print("\n--- SIMULATION INPUT ---")
-            simulated_plate = input("Enter plate number to simulate: ").strip().upper()
-            if simulated_plate:
-                print(f"[NPR System] Simulating Plate Scan: {simulated_plate}")
-                is_authorized = verify_plate_backend(simulated_plate)
-                if is_authorized:
-                    print("MATCH FOUND - ACCESS GRANTED")
-                    send_serial(1)
-                else:
-                    print("NO MATCH - ACCESS DENIED")
-                    send_serial(0)
-    else:
-        # CLI-only loop
-        print("\n--- NPR SIMULATOR (CLI Mode) ---")
-        print("Type a plate number to scan, or 'exit' to quit.")
-        simulated_plate = input("Simulated Plate: ").strip().upper()
-        if simulated_plate == 'EXIT':
-            break
-        elif simulated_plate:
-            print(f"[NPR System] Simulating Plate Scan: {simulated_plate}")
-            is_authorized = verify_plate_backend(simulated_plate)
-            if is_authorized:
-                print("MATCH FOUND - ACCESS GRANTED")
+            if authorized:
+                print("MATCH FOUND via Backend API")
                 send_serial(1)
             else:
-                print("NO MATCH - ACCESS DENIED")
-                send_serial(0)
-        time.sleep(0.5)
+                # Fallback to direct Firebase local comparison after normalizing
+                clean_detected = re.sub(r'[^A-Z0-9]', '', number.upper())
+                detected_digits = re.sub(r'[^0-9]', '', clean_detected)
 
-if cap.isOpened():
-    cap.release()
+                local_match = False
+                for stored in stored_numbers:
+                    clean_stored = re.sub(r'[^A-Z0-9]', '', str(stored).upper())
+                    stored_digits = re.sub(r'[^0-9]', '', clean_stored)
+
+                    if clean_detected == clean_stored:
+                        local_match = True
+                        break
+                    if detected_digits and stored_digits and detected_digits == stored_digits:
+                        local_match = True
+                        break
+
+                if local_match:
+                    print("MATCH FOUND via Local Firebase Sync")
+                    send_serial(1)
+                else:
+                    print("NO MATCH - UNRECOGNIZED")
+                    send_serial(0)
+                    try:
+                        db.reference("unrecognized").set(number)
+                        print("Synced unrecognized plate to Firebase")
+                    except Exception as fe:
+                        print("Firebase upload failed:", fe)
+
+            ready_to_scan = False
+            wait_start = current_time
+
+    else:
+        remaining = wait_time - (current_time - wait_start)
+
+        if frame is not None:
+            cv2.putText(
+                frame,
+                f"Waiting: {int(remaining)}s",
+                (50,50),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                1,
+                (0,0,255),
+                2
+            )
+
+        if remaining <= 0:
+            ready_to_scan = True
+            print("Rescan Ready")
+
+    if frame is not None:
+        cv2.imshow("Result", frame)
+
+    key = cv2.waitKey(1) & 0xFF
+    if key == ord('q'):
+        break
+    elif key == ord('i'):
+        print("\n--- NPR CAMERA SIMULATION MODE ---")
+        try:
+            sim_input = input("Enter plate number to simulate scan (e.g. ABJ 1638): ").strip().upper()
+            if sim_input:
+                simulated_number = sim_input
+        except Exception as e:
+            print("Simulation input error:", e)
+
+
+cap.release()
 cv2.destroyAllWindows()
 if serial_port:
     serial_port.close()

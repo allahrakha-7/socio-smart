@@ -7,7 +7,7 @@ import BottomTab from '../../../../components/bottom-tab/BottomTab';
 import { io, Socket } from 'socket.io-client';
 import {
   Bell, Search, Unlock, Lock, Camera, CheckCircle, XCircle, Clock, Car, UserPlus, Phone, AlertOctagon,
-  Megaphone, Users, Check, Hash, ShieldCheck, Scan, Zap, ShieldAlert, User, ArrowRight
+  Megaphone, Users, Check, Hash, ShieldCheck, Scan, Zap, ShieldAlert, User, ArrowRight, Settings
 } from 'lucide-react-native';
 
 type Session = {
@@ -87,6 +87,7 @@ const GuardDashboard = ({ navigation }: any) => {
   const [visitorUnit, setVisitorUnit] = useState('');
   const [visitorPurpose, setVisitorPurpose] = useState('Visitor Entry');
   const [authorizedActivity, setAuthorizedActivity] = useState<any>(null);
+  const [scanningPlate, setScanningPlate] = useState<string | null>(null);
 
   const stackNavigation = navigation?.getParent?.() ?? navigation;
 
@@ -190,8 +191,18 @@ const GuardDashboard = ({ navigation }: any) => {
       fetchGuardData();
     });
 
+    socket.on('plate_scanning', (data: any) => {
+      console.log('[Security Hub] Plate scanning event:', data);
+      setScanningPlate(data.plate_number);
+      // Auto-clear after 6 seconds in case of silent timeout
+      setTimeout(() => {
+        setScanningPlate(prev => prev === data.plate_number ? null : prev);
+      }, 6000);
+    });
+
     socket.on('gate_activity', (data: any) => {
       console.log('[Security Hub] Gate Activity Socket Event:', data);
+      setScanningPlate(null); // Clear scanning indicator on complete
 
       // Auto-refresh the logs
       fetchGuardData();
@@ -438,6 +449,20 @@ const GuardDashboard = ({ navigation }: any) => {
         </View>
       )}
 
+      {scanningPlate && (
+        <View className="absolute top-24 left-6 right-6 bg-[#2563EB] dark:bg-blue-900 p-5 rounded-[28px] z-50 flex-row items-center border border-blue-500 shadow-xl shadow-blue-600/30">
+          <View className="w-12 h-12 bg-white/20 rounded-full items-center justify-center mr-4">
+            <ActivityIndicator color="white" size="small" />
+          </View>
+          <View className="flex-1">
+            <Text className="text-white font-satoshi-bold text-xs uppercase tracking-wider mb-0.5">Camera Actively Scanning</Text>
+            <Text className="text-white font-satoshi-black text-xs">
+              Processing Plate: {scanningPlate}...
+            </Text>
+          </View>
+        </View>
+      )}
+
       {/* 1. Header Area */}
       <View className="px-6 bg-[#F8F9FA] dark:bg-zinc-950">
         <View className="flex-row items-center justify-between">
@@ -514,7 +539,7 @@ const GuardDashboard = ({ navigation }: any) => {
               </>
             ) : (
               <View className="py-2 items-center">
-                <View className="w-16 h-16 bg-white/10 rounded-[22px] items-center justify-center mb-3">
+                <View className="w-16 h-16 bg-white/10 rounded-full items-center justify-center mb-3">
                   <CheckCircle size={28} color="white" strokeWidth={1.5} />
                 </View>
                 <Text className="text-white font-satoshi-bold text-center text-[13px]">Peaceful Environment</Text>
@@ -628,6 +653,17 @@ const GuardDashboard = ({ navigation }: any) => {
           <View className="mb-6">
             <View className="flex-row justify-between items-center mb-4">
               <Text className="text-gray-900 dark:text-zinc-50 font-satoshi-bold text-[18px]">Live NPR Feed</Text>
+              {scanningPlate ? (
+                <View className="flex-row items-center bg-blue-50 dark:bg-blue-900/30 px-3 py-1 rounded-full border border-blue-100 dark:border-blue-800/40">
+                  <View className="w-2 h-2 bg-blue-500 rounded-full mr-1.5" />
+                  <Text className="text-blue-600 dark:text-blue-400 font-satoshi-bold text-[10px] uppercase tracking-wider">Scanning</Text>
+                </View>
+              ) : (
+                <View className="flex-row items-center bg-green-50 dark:bg-green-900/30 px-3 py-1 rounded-full border border-green-100 dark:border-green-800/40">
+                  <View className="w-2 h-2 bg-green-500 rounded-full mr-1.5" />
+                  <Text className="text-green-600 dark:text-green-400 font-satoshi-bold text-[10px] uppercase tracking-wider">Camera Active</Text>
+                </View>
+              )}
             </View>
             <View className="bg-white dark:bg-zinc-900 rounded-lg border border-gray-100 dark:border-zinc-800 shadow-sm overflow-hidden p-1">
               {nprLogs.length > 0 ? (
@@ -656,7 +692,7 @@ const GuardDashboard = ({ navigation }: any) => {
                 </View>
               )}
               <TouchableOpacity onPress={() => stackNavigation.navigate('GateLogs')} className="py-3 items-center">
-                <Text className="text-blue-600 dark:text-blue-400 font-satoshi-bold text-[13px]">View Full History</Text>
+                <Text className="text-blue-600 dark:text-[#2563EB] font-satoshi-bold text-[13px]">View Full History</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -665,18 +701,25 @@ const GuardDashboard = ({ navigation }: any) => {
           <View className="mb-8">
             <Text className="text-gray-900 dark:text-zinc-50 font-satoshi-bold text-[18px] mb-4">Duty Resources</Text>
             <View className="flex-row justify-between">
-              <TouchableOpacity activeOpacity={0.8} onPress={() => stackNavigation.navigate('NoticeBoard')} className="w-[48%] bg-white dark:bg-zinc-900 rounded-lg p-4 items-center border border-gray-100 dark:border-zinc-800 shadow-sm shadow-blue-100 dark:shadow-none">
-                <View className="w-12 h-12 items-center justify-center mb-3">
-                  <Megaphone size={26} color={colorScheme === 'dark' ? '#60A5FA' : "#2563EB"} />
+              <TouchableOpacity activeOpacity={0.8} onPress={() => stackNavigation.navigate('NoticeBoard')} className="w-[31%] bg-white dark:bg-zinc-900 rounded-lg p-3.5 items-center border border-gray-100 dark:border-zinc-800 shadow-sm shadow-blue-100 dark:shadow-none">
+                <View className="w-10 h-10 items-center justify-center mb-2.5">
+                  <Megaphone size={22} color={colorScheme === 'dark' ? '#2563EB' : "#2563EB"} />
                 </View>
-                <Text className="text-center font-satoshi-bold text-gray-900 dark:text-zinc-50 text-[14px]">Daily Updates</Text>
+                <Text className="text-center font-satoshi-bold text-gray-900 dark:text-zinc-50 text-[11px]">Daily Updates</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity activeOpacity={0.8} onPress={() => stackNavigation.navigate('SearchVehicle')} className="w-[48%] bg-white dark:bg-zinc-900 rounded-lg p-4 items-center border border-gray-100 dark:border-zinc-800 shadow-sm shadow-blue-100 dark:shadow-none">
-                <View className="w-12 h-12 items-center justify-center mb-3">
-                  <Car size={30} color={colorScheme === 'dark' ? '#60A5FA' : "#2563EB"} />
+              <TouchableOpacity activeOpacity={0.8} onPress={() => stackNavigation.navigate('SearchVehicle')} className="w-[31%] bg-white dark:bg-zinc-900 rounded-lg p-3.5 items-center border border-gray-100 dark:border-zinc-800 shadow-sm shadow-blue-100 dark:shadow-none">
+                <View className="w-10 h-10 items-center justify-center mb-2.5">
+                  <Car size={24} color={colorScheme === 'dark' ? '#2563EB' : "#2563EB"} />
                 </View>
-                <Text className="text-center font-satoshi-bold text-gray-900 dark:text-zinc-50 text-[14px]">Vehicle Lookup</Text>
+                <Text className="text-center font-satoshi-bold text-gray-900 dark:text-zinc-50 text-[11px]">Vehicle Lookup</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity activeOpacity={0.8} onPress={() => stackNavigation.navigate('GateOverride')} className="w-[31%] bg-white dark:bg-zinc-900 rounded-lg p-3.5 items-center border border-gray-100 dark:border-zinc-800 shadow-sm shadow-blue-100 dark:shadow-none">
+                <View className="w-10 h-10 items-center justify-center mb-2.5">
+                  <Settings size={22} color={colorScheme === 'dark' ? '#2563EB' : "#2563EB"} />
+                </View>
+                <Text className="text-center font-satoshi-bold text-gray-900 dark:text-zinc-50 text-[11px]">Gate Control</Text>
               </TouchableOpacity>
             </View>
           </View>

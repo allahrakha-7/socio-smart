@@ -1,5 +1,5 @@
 import express from 'express';
-import { createEntry, markExit, getGateLogs, getDailyStats, getMyGateLogs, deleteGateLog, verifyGateAccess, getRecentGateActivity, manualTriggerGate } from '../controllers/gateController.js';
+import { createEntry, markExit, getGateLogs, getDailyStats, getMyGateLogs, deleteGateLog, verifyGateAccess, getRecentGateActivity, manualTriggerGate, notifyGateScanning } from '../controllers/gateController.js';
 import { protect, requireAdmin } from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
@@ -11,6 +11,7 @@ router.get('/stats', protect, getDailyStats);
 
 // IoT and Gate Activity Monitoring
 router.post('/verify', verifyGateAccess); // Scanned by NPR Camera (Expert Interface)
+router.post('/scanning', notifyGateScanning);
 router.get('/recent-activity', protect, getRecentGateActivity);
 router.post('/manual-trigger', protect, manualTriggerGate); // Manual Override (Fail-safe)
 

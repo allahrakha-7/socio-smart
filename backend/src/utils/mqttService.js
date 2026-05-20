@@ -37,6 +37,16 @@ class MqttService {
     });
 
     this.client.publish(GATE_COMMAND_TOPIC, payload, { qos: 1 });
+
+    // Sync to Firebase gateControl/command path
+    try {
+      import('axios').then(({ default: axios }) => {
+        const cmd = action.toLowerCase();
+        axios.put('https://car-scaning-default-rtdb.firebaseio.com/gateControl.json', { command: cmd })
+          .catch(e => console.log('[Firebase RTDB Sync] Error:', e.message));
+      });
+    } catch (e) {}
+
     return { topic: GATE_COMMAND_TOPIC, payload: action };
   }
 
