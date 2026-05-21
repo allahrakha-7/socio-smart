@@ -10,22 +10,32 @@ import os
 # ================= Tesseract =================
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
-# ================= Firebase =================
-script_dir = os.path.dirname(os.path.abspath(__file__))
-cert_path = os.path.join(script_dir, "car-scaning-firebase-adminsdk-fbsvc-54503e6285.json")
-cred = credentials.Certificate(cert_path)
+# ================= Configuration =================
+BACKEND_URL = "https://sociosmart-backend.onrender.com"  # Production Render API URL (change to 'http://localhost:5000' for local testing)
 
-firebase_admin.initialize_app(cred, {
-    'databaseURL': 'https://car-scaning-default-rtdb.firebaseio.com/'
-})
+# ================= Firebase =================
+firebase_enabled = False
+
+try:
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    cert_path = os.path.join(script_dir, "car-scaning-firebase-adminsdk-fbsvc-54503e6285.json")
+    if os.path.exists(cert_path):
+        cred = credentials.Certificate(cert_path)
+        firebase_admin.initialize_app(cred, {
+            'databaseURL': 'https://car-scaning-default-rtdb.firebaseio.com/'
+        })
+        firebase_enabled = True
+        print("[Firebase] Admin SDK initialized successfully.")
+    else:
+        print("[Firebase] WARNING: Credentials file not found. Running in local/REST fallback mode.")
+except Exception as e:
+    print("[Firebase] Failed to initialize Admin SDK (falling back to REST/Local mode):", e)
 
 # Firebase path:
 # cars/
 #    car1 : 5897
 #    car2 : 123
 #    car3 : 2024
-
-firebase_enabled = True
 
 def get_firebase_numbers():
     global firebase_enabled
@@ -63,7 +73,7 @@ def get_firebase_numbers():
     except Exception as e:
         err_msg = str(e)
         if "invalid_grant" in err_msg or "account not found" in err_msg or "auth" in err_msg.lower():
-            print("[Firebase RTDB] WARNING: Firebase service account credentials invalid or expired. Fallback database disabled.")
+            print("[Firebase RTDB] WARNING: Firebase service account credentials invalid or expired. Fallback database enabled.")
             firebase_enabled = False
         else:
             print("Error fetching Firebase numbers:", e)
@@ -76,7 +86,7 @@ def verify_plate_backend(plate_number):
         import urllib.request
         data = json.dumps({'plate_number': plate_number}).encode('utf-8')
         req = urllib.request.Request(
-            'http://localhost:5000/api/gate/verify', 
+            f'{BACKEND_URL}/api/gate/verify', 
             data=data, 
             headers={'Content-Type': 'application/json'}, 
             method='POST'
@@ -85,7 +95,7 @@ def verify_plate_backend(plate_number):
             res_data = json.loads(response.read().decode('utf-8'))
             return res_data.get('authorized', False)
     except Exception as e:
-        print("[NPR System] Warning: Local Backend API verify failed:", e)
+        print("[NPR System] Warning: Backend API verify failed:", e)
         return False
 
 def notify_scanning_backend(plate_number):
@@ -94,7 +104,7 @@ def notify_scanning_backend(plate_number):
         import urllib.request
         data = json.dumps({'plate_number': plate_number}).encode('utf-8')
         req = urllib.request.Request(
-            'http://localhost:5000/api/gate/scanning', 
+            f'{BACKEND_URL}/api/gate/scanning', 
             data=data, 
             headers={'Content-Type': 'application/json'}, 
             method='POST'
@@ -122,11 +132,14 @@ def gate_command_listener(event):
         except Exception as ex:
             print("Failed to reset gate command:", ex)
 
-try:
-    db.reference("gateControl/command").listen(gate_command_listener)
-    print("[Firebase RTDB] Listening for gateControl/command updates.")
-except Exception as le:
-    print("[Firebase RTDB] Streaming listener failed, falling back to camera scanning only:", le)
+if firebase_enabled:
+    try:
+        db.reference("gateControl/command").listen(gate_command_listener)
+        print("[Firebase RTDB] Listening for gateControl/command updates.")
+    except Exception as le:
+        print("[Firebase RTDB] Streaming listener failed, falling back to camera scanning only:", le)
+else:
+    print("[Firebase RTDB] Streaming listener disabled (running in fallback database mode).")
 
 # ================= Variables =================
 MIN_WIDTH = 100

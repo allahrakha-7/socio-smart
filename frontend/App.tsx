@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import BootSplash from 'react-native-bootsplash';
-import { ActivityIndicator, Text, TextInput, View, Appearance } from 'react-native';
+import { ActivityIndicator, Text, View, Appearance } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -75,6 +75,7 @@ const App = () => {
         await fetch('https://www.google.com', { method: 'HEAD', signal: controller.signal });
         clearTimeout(timeoutId);
         if (active) setIsOffline(false);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (err) {
         if (active) setIsOffline(true);
       }
@@ -188,6 +189,7 @@ const App = () => {
   };
 
   return (
+    // eslint-disable-next-line react-native/no-inline-styles
     <View style={{ flex: 1 }}>
       <NavigationContainer ref={navigationRef} linking={linking}>
         <Stack.Navigator initialRouteName={initialRouteName} screenOptions={{ headerShown: false }}>
